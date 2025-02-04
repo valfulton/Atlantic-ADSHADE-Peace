@@ -1,0 +1,15 @@
+version: '4.0'
+services:
+    web:
+        build:
+            context: .
+            dockerfile: Dockerfile
+            target: prod
+        platform: linux/amd64 # Explicitly set for TDX
+        image: mattdlockyer/based-agent-test:latest
+        container_name: web
+        ports:
+            - '3000:3000'
+        volumes:
+            - /var/run/tappd.sock:/var/run/tappd.sock
+        restart: always
