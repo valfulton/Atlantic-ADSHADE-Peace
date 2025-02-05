@@ -1,16 +1,17 @@
 import Head from 'next/head';
 import styles from '../styles/Home.module.css';
-
 import { saveAs } from 'file-saver';
 import { useState, useEffect } from 'react';
+import { formatNearAmount } from 'near-api-js/lib/utils/format';
 
 export default function Home() {
     const [accountId, setAccountId] = useState();
+    const [balance, setBalance] = useState();
 
     const getKey = async () => {
         const res = await fetch('/api/derive').then((r) => r.json());
         setAccountId(res.accountId);
-        console.log(res);
+        setBalance(res.balance);
     };
 
     useEffect(() => {
@@ -101,28 +102,38 @@ export default function Home() {
                             >
                                 copy
                             </button>
+                            <br />
+                            <br />
+                            balance:{' '}
+                            {balance
+                                ? formatNearAmount(balance.available, 4)
+                                : 0}
                         </p>
                     </div>
 
-                    <a
-                        href="#"
-                        className={styles.card}
-                        onClick={async () => {
-                            const res = await fetch('/api/verify').then((r) =>
-                                r.json(),
-                            );
+                    {parseInt(balance?.available, 10) !== 0 && (
+                        <>
+                            <a
+                                href="#"
+                                className={styles.card}
+                                onClick={async () => {
+                                    const res = await fetch('/api/verify').then(
+                                        (r) => r.json(),
+                                    );
 
-                            console.log(res);
-                        }}
-                    >
-                        <h3>Step 5.</h3>
-                        <p>
-                            Verify the TEE in the contract:
-                            <br />
-                            <br />
-                            {process.env.contractId}
-                        </p>
-                    </a>
+                                    console.log(res);
+                                }}
+                            >
+                                <h3>Step 5.</h3>
+                                <p>
+                                    Verify the TEE in the contract:
+                                    <br />
+                                    <br />
+                                    {process.env.NEXT_PUBLIC_contractId}
+                                </p>
+                            </a>
+                        </>
+                    )}
                 </div>
             </main>
 

@@ -3,8 +3,7 @@ import 'dotenv/config';
 
 export const dynamic = 'force-dynamic';
 
-const endpoint =
-    process.env.DSTACK_SIMULATOR_ENDPOINT || 'http://localhost:8090';
+const endpoint = process.env.DSTACK_SIMULATOR_ENDPOINT;
 
 export default async function quote(req, res) {
     // Get Tappd client

@@ -1,12 +1,8 @@
-import { TappdClient } from '@phala/dstack-sdk';
 import 'dotenv/config';
 
-import { contractCall } from './utils/near-provider';
+import { contractCall } from '../../utils/near-provider';
 
 export const dynamic = 'force-dynamic';
-
-const endpoint =
-    process.env.DSTACK_SIMULATOR_ENDPOINT || 'http://localhost:8090';
 
 export default async function verify(req, res) {
     let collateral = {
