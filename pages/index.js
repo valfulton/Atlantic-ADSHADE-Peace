@@ -1,7 +1,7 @@
 import Head from 'next/head';
 import styles from '../styles/Home.module.css';
-import { saveAs } from 'file-saver';
 import { useState, useEffect } from 'react';
+import { contractView, getAccount } from '../utils/near-provider';
 import { formatNearAmount } from 'near-api-js/lib/utils/format';
 
 export default function Home() {
@@ -40,55 +40,9 @@ export default function Home() {
                 </ol>
                 <div className={styles.grid}>
                     <div className={styles.card}>
-                        <a
-                            href="https://github.com/mattlockyer/dcap-qvl/"
-                            target="_blank"
-                        >
-                            <h3>Step 1. Get the tools &rarr;</h3>
-                            <p>
-                                Clone this repo and make sure you have Rust
-                                cargo installed. You will need it later.
-                            </p>
-                        </a>
-                    </div>
-
-                    <a
-                        href="#"
-                        className={styles.card}
-                        onClick={async () => {
-                            const res = await fetch('/api/quote').then((r) =>
-                                r.json(),
-                            );
-
-                            console.log(res);
-
-                            const file = new File(
-                                [res.quote.substring(2)],
-                                'quote_hex',
-                                {
-                                    type: 'text/plain;charset=utf-8',
-                                },
-                            );
-                            saveAs(file);
-                        }}
-                    >
-                        <h3>Step 2. Download quote hex &rarr;</h3>
+                        <h3>Step 1.</h3>
                         <p>
-                            Download this TEE's remote attestation quote hex and
-                            save it in the /cli folder of the cloned repo from
-                            Step 1.
-                        </p>
-                    </a>
-
-                    <div className={styles.card}>
-                        <h3>Step 3.</h3>
-                        <p>Run the cli and get the quote collateral.</p>
-                    </div>
-
-                    <div className={styles.card}>
-                        <h3>Step 4.</h3>
-                        <p>
-                            Send NEAR to the TEE's account:
+                            Fund this TEE's account:
                             <br />
                             <br />
                             {accountId?.length >= 24
@@ -117,20 +71,40 @@ export default function Home() {
                                 href="#"
                                 className={styles.card}
                                 onClick={async () => {
-                                    const res = await fetch('/api/verify').then(
+                                    const res = await fetch('/api/quote').then(
                                         (r) => r.json(),
                                     );
 
                                     console.log(res);
                                 }}
                             >
-                                <h3>Step 5.</h3>
+                                <h3>Step 2.</h3>
                                 <p>
                                     Verify the TEE in the contract:
                                     <br />
                                     <br />
                                     {process.env.NEXT_PUBLIC_contractId}
                                 </p>
+                            </a>
+
+                            <a
+                                href="#"
+                                className={styles.card}
+                                onClick={async () => {
+                                    const account = getAccount();
+
+                                    const res = await contractView({
+                                        methodName: 'get_tee',
+                                        args: {
+                                            account_id: account.accountId,
+                                        },
+                                    });
+
+                                    console.log(res);
+                                }}
+                            >
+                                <h3>Step 3.</h3>
+                                <p>Check if this TEE is verified.</p>
                             </a>
                         </>
                     )}

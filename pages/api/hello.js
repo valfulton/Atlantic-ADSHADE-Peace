@@ -1,9 +1,11 @@
-const endpoint = process.env.DSTACK_SIMULATOR_ENDPOINT;
-const accountId = process.env.accountId;
-const useDevAccount = process.env.useDevAccount;
+import { TappdClient } from '../../utils/tappd';
 
-export default function hello(req, res) {
-    res.status(200).json({
-        test: 'hello',
-    });
+export const dynamic = 'force-dynamic';
+
+const endpoint = process.env.DSTACK_SIMULATOR_ENDPOINT;
+export default async function hello(req, res) {
+    const client = new TappdClient(endpoint);
+    await client.getInfo();
+
+    res.status(200).json({ ok: true });
 }

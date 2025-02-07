@@ -12,8 +12,7 @@ crypto.getRandomValues(randomArray);
 const endpoint = process.env.DSTACK_SIMULATOR_ENDPOINT;
 
 export default async function derive(req, res) {
-    console.log('hey');
-    if (process.env.NEXT_PUBLIC_useDevAccount === 'true') {
+    if (process.env.NEXT_PUBLIC_accountId !== undefined) {
         const accountId = process.env.NEXT_PUBLIC_accountId;
         const account = getAccount(accountId);
         const balance = await account.getAccountBalance();
