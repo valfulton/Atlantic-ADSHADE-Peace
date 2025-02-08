@@ -1,14 +1,23 @@
 # Based Agent Template
 
-This is a monorepo template for deploying a Based Agent (see description below) on NEAR and Phala Cloud.
+This is a monorepo template for deploying a Based Agent on NEAR and Phala Cloud.
 
-The template has 2 main components: a NEAR smart contract and a NextJS docker application that can be deployed to Phala Cloud.
+The template has 2 main components to code and deploy: a NEAR smart contract and a NextJS docker application with API.
 
 # Based Agents
 
-Based Agents are multichain crypto AI agents, verifiable from code to onchain transaction execution. The components are:
+Based Agents are multichain crypto AI agents, verifiable from their source code through to their onchain transactions.
+
+Based Agents can:
+- Sign transactions for any chain
+- Custody cryptoassets
+- Verifiably access off-chain LLMs, APIs and data
+- Preserve privacy
+
+<img width="691" alt="image" src="https://github.com/user-attachments/assets/9b8f3308-ae6d-4349-a312-9984e36e38c6" />
+
+Components of a Based Agent are:
 1. A verifiable TEE deployment on Phala Cloud
-1. LLMs as docker images
 1. API layer as docker image (NextJS App)
 1. NEAR Smart Contract to verify a TEE's remote attestation and stack
 1. NEAR's Chain Signatures for multichain key management 
@@ -22,11 +31,9 @@ Based Agents use the following information from the TEE Deployment on Phala Clou
 1. The unique key derived from the TEE's hardware
 1. The docker-compose.yaml data which contains the SHA hash of the individual docker images running on the TEE
 
-## 2. LLMs as docker image
+![image](https://github.com/user-attachments/assets/aae0db8a-cbcb-4a30-858b-3fcadc0f1f17)
 
-LLMs deployed as docker images can easily be leveraged by other applications deployed in the same docker stack. With Based Agents, the LLM is used by the API Layer in the docker stack. Based Agents will typically use 1 or more LLMs to provide the inference for the API layer. 
-
-## 3. API Layer
+## 2. API Layer
 
 Based Agents have an API Layer that acts as a bridge between the LLMs and the NEAR Smart Contract.
 
@@ -42,17 +49,23 @@ What to use the API layer for (remember it's verified!):
 - preprocessing LLM inference into specific smart contract method calls
 - arbitrary offchain compute
 
-## 4. NEAR Smart Contract
+## 3. NEAR Smart Contract
 
 This template provides a NEAR Smart Contract that can do the following:
 1. Registration - verify a TEE's remote attestation and store the TEE data
 1. Method Calls - made from the TEE's NEAR Account, follow up method calls virtually zero cost
 
-## 5. NEAR Chain Signatures
+## 4. NEAR Chain Signatures
 
 Using a path offset from the NEAR Smart Contract, we can have contract controlled accounts for any chain.
 
 To derive accounts we use...
 
 To get signatures for transactions on these accounts we call the NEAR Chain Signatures contract from our contract with the path offset of the account we'd like to receive a signature for.
+
+# What can be done with Based Agents?
+
+## 1. LLMs as docker image
+
+LLMs deployed as docker images can easily be leveraged by other applications deployed in the same docker stack. With Based Agents, the LLM is used by the API Layer in the docker stack. Based Agents will typically use 1 or more LLMs to provide the inference for the API layer. 
 
