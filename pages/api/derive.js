@@ -6,6 +6,7 @@ import 'dotenv/config';
 
 export const dynamic = 'force-dynamic';
 
+// randomness only available to this instance of TEE
 const randomArray = new Uint8Array(32);
 crypto.getRandomValues(randomArray);
 
@@ -25,17 +26,22 @@ export default async function derive(req, res) {
     }
 
     const client = new TappdClient(endpoint);
+    // randomness from TEE hardware
     const randomDeriveKey = await client.deriveKey(
         Buffer.from(randomArray).toString('hex'),
         Buffer.from(randomArray).toString('hex'),
     );
+    // hash of combined randomness
     const hash = await crypto.subtle.digest(
         'SHA-256',
         Buffer.concat([randomArray, randomDeriveKey.asUint8Array(32)]),
     );
+    // data.secretKey should not be exfiltrated anywhere
+    // no logs or debugging tools
     const data = generateSeedPhrase(hash);
-    // console.log(data);
+    // set the accountId
     const accountId = (process.env.accountId = getImplicit(data.publicKey));
+    // set the secretKey (inMemoryKeyStore only)
     setKey(accountId, data.secretKey);
 
     let balance = { available: '0' };

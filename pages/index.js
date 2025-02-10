@@ -26,15 +26,20 @@ export default function Home() {
             </Head>
 
             <main className={styles.main}>
-                <h1 className={styles.title}>Phala dStack x NEAR</h1>
+                <h1 className={styles.title}>Based Agent Template</h1>
                 <ol>
                     <li>
-                        This app is designed to run on Phala Cloud inside a TEE
-                        and be verified.
+                        This worker agent app is designed to run on Phala Cloud
+                        inside a TEE and be verified by the worker's smart
+                        contract.
                     </li>
                     <li>
-                        It produces a remote attestation quote that is verified
-                        by a NEAR contract.
+                        The app derives a key that is unique to the running
+                        instance and TEE hardware.
+                    </li>
+                    <li>
+                        The app calls the worker smart contract and registers
+                        itself by using the remote attestation quote.
                     </li>
                     <li>Follow the steps below to verify your app.</li>
                 </ol>
@@ -42,7 +47,7 @@ export default function Home() {
                     <div className={styles.card}>
                         <h3>Step 1.</h3>
                         <p>
-                            Fund this TEE's account:
+                            Fund the worker agent's account:
                             <br />
                             <br />
                             {accountId?.length >= 24
@@ -71,16 +76,16 @@ export default function Home() {
                                 href="#"
                                 className={styles.card}
                                 onClick={async () => {
-                                    const res = await fetch('/api/quote').then(
-                                        (r) => r.json(),
-                                    );
+                                    const res = await fetch(
+                                        '/api/register',
+                                    ).then((r) => r.json());
 
                                     console.log(res);
                                 }}
                             >
                                 <h3>Step 2.</h3>
                                 <p>
-                                    Verify the TEE in the contract:
+                                    Verify the worker agent in the contract:
                                     <br />
                                     <br />
                                     {process.env.NEXT_PUBLIC_contractId}
@@ -104,7 +109,7 @@ export default function Home() {
                                 }}
                             >
                                 <h3>Step 3.</h3>
-                                <p>Check if this TEE is verified.</p>
+                                <p>Check if this agent is verified.</p>
                             </a>
                         </>
                     )}

@@ -243,7 +243,7 @@ export class TappdClient {
             '',
         );
 
-        console.log(result);
+        return JSON.parse(result);
     }
 
     async deriveKey(

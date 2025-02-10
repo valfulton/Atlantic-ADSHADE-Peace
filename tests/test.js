@@ -74,7 +74,7 @@ test('call register_worker with quote', async (t) => {
             quote_hex,
             collateral: JSON.stringify(collateral),
             checksum: 'foo',
-            image_hash: 'bar',
+            codehash: 'bar',
         },
     });
 
