@@ -15,7 +15,7 @@ Based Agents can:
 -   Verifiably access off-chain LLMs, APIs and data
 -   Preserve privacy
 
-<img width="691" alt="image" src="https://github.com/user-attachments/assets/9b8f3308-ae6d-4349-a312-9984e36e38c6" />
+<img width="681" alt="image" src="https://github.com/user-attachments/assets/e2208c98-b022-4ee2-9d6e-5e605a61e8b2" />
 
 Components of a Based Agent are:
 
