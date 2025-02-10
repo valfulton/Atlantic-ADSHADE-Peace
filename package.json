@@ -1,6 +1,8 @@
 {
+    "type": "module",
     "private": true,
     "scripts": {
+        "test:contract": "cd contract && cargo near build --no-docker && cd .. && ava ./tests/test.js --serial --timeout 30s",
         "dev": "next dev",
         "build": "next build",
         "build:docker": "sudo docker build --no-cache --target prod -t my-nextjs-app:latest .",
@@ -20,5 +22,8 @@
         "next": "latest",
         "react": "^18.2.0",
         "react-dom": "^18.2.0"
+    },
+    "devDependencies": {
+        "ava": "^6.1.3"
     }
 }

@@ -242,6 +242,7 @@ export class TappdClient {
             '/prpc/Tappd.Info',
             '',
         );
+
         console.log(result);
     }
 

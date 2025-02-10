@@ -1,4 +1,5 @@
-import 'dotenv/config';
+import * as dotenv from 'dotenv';
+dotenv.config({ path: './.env.development.local' });
 import * as nearAPI from 'near-api-js';
 const {
     Near,
@@ -11,7 +12,7 @@ const {
 // from .env
 let _contractId = process.env.NEXT_PUBLIC_contractId;
 let secretKey = process.env.NEXT_PUBLIC_secretKey;
-let devAccountId = process.env.NEXT_PUBLIC_accountId;
+let _accountId = process.env.NEXT_PUBLIC_accountId;
 
 export const contractId = _contractId;
 
@@ -31,20 +32,32 @@ const { provider } = connection;
 const gas = BigInt('300000000000000');
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
-export const getImplicit = (pubKeyStr) =>
-    Buffer.from(PublicKey.from(pubKeyStr).data).toString('hex').toLowerCase();
+// helpers
+
 export const setKey = (accountId, secretKey) => {
     if (!accountId || !secretKey) return;
-    devAccountId = accountId;
+    _accountId = accountId;
     const keyPair = KeyPair.fromString(secretKey);
     keyStore.setKey(networkId, accountId, keyPair);
 };
-// running in dev we'll use the NEAR account from our env
+// .env.development.local - automatically set key to dev account
 if (secretKey) {
-    setKey(devAccountId, secretKey);
+    setKey(_accountId, secretKey);
 }
+// .env.development.local - for tests expose keyPair and use for contract account (sub account of dev account)
+// process.env.NEXT_PUBLIC_secretKey not set in production
+export const getDevAccountKeyPair = () => {
+    const keyPair = KeyPair.fromString(process.env.NEXT_PUBLIC_secretKey);
+    keyStore.setKey(networkId, contractId, keyPair);
+    return keyPair;
+};
 
-export const getAccount = (id = devAccountId) => new Account(connection, id);
+export const getImplicit = (pubKeyStr) =>
+    Buffer.from(PublicKey.from(pubKeyStr).data).toString('hex').toLowerCase();
+
+export const getAccount = (id = _accountId) => new Account(connection, id);
+
+// contract interactions
 
 export const contractView = async ({
     accountId,
