@@ -35,7 +35,7 @@ impl Contract {
         }
     }
 
-    // owner methods
+    // method access control
 
     pub fn require_owner(&mut self) {
         require!(env::predecessor_account_id() == self.owner_id);
@@ -50,6 +50,17 @@ impl Contract {
 
         require!(worker.codehash == codehash);
     }
+
+    // example and test method
+
+    /// will throw on client if caller is not verified for the provided codehash
+    pub fn is_worker_verified(&mut self, codehash: String) {
+        self.require_worker(codehash);
+        // worker agent does something amazing here after being registered
+        log!("The agent abides.")
+    }
+
+    // register args see: https://github.com/mattlockyer/based-agent-template/blob/main/pages/api/register.js
 
     pub fn register_worker(
         &mut self,
@@ -73,6 +84,8 @@ impl Contract {
         }
         false
     }
+
+    // views
 
     pub fn get_worker(&self, account_id: AccountId) -> Worker {
         self.worker_by_account_id

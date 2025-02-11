@@ -78,7 +78,40 @@ test('call register_worker with quote', async (t) => {
         },
     });
 
-    console.log(res);
+    console.log('was worker registered?', res);
+
+    t.pass();
+});
+
+test('call is_worker_verified', async (t) => {
+    // will throw if the worker was not registered
+    await contractCall({
+        contractId,
+        methodName: 'is_worker_verified',
+        args: {
+            codehash: 'bar',
+        },
+    });
+
+    t.pass();
+});
+
+test('should fail: call is_worker_verified', async (t) => {
+    // will throw if the worker was not registered
+    try {
+        await contractCall({
+            contractId,
+            methodName: 'is_worker_verified',
+            args: {
+                codehash: 'bar2',
+            },
+        });
+    } catch (e) {
+        console.log(
+            'require! assertion failed?',
+            /require! assertion failed/gim.test(JSON.stringify(e)),
+        );
+    }
 
     t.pass();
 });
@@ -92,7 +125,7 @@ test('call get_worker', async (t) => {
         },
     });
 
-    console.log(res);
+    console.log('worker', res);
 
     t.pass();
 });
