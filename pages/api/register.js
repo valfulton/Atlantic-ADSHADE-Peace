@@ -49,7 +49,7 @@ export default async function register(req, res) {
             quote_hex,
             collateral,
             checksum,
-            image_hash: 'foo',
+            codehash,
         },
     });
 
