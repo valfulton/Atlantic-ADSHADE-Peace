@@ -10,9 +10,10 @@ export default async function register(req, res) {
     const client = new TappdClient(endpoint);
 
     // get tcb info from tappd
-    const {
-        tcb_info: { app_compose },
-    } = await client.getInfo();
+    const { tcb_info } = await client.getInfo();
+    console.log(typeof tcb_info, tcb_info);
+    const { app_compose } = JSON.parse(tcb_info);
+    console.log(typeof app_compose, app_compose);
     // first sha256: match of docker-compose.yaml will be codehash (arrange docker-compose.yaml accordingly)
     const [codehash] = app_compose.match(/sha256:([a-f0-9]*)/gim);
 

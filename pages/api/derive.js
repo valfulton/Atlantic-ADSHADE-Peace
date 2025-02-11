@@ -18,6 +18,11 @@ export default async function derive(req, res) {
         const account = getAccount(accountId);
         const balance = await account.getAccountBalance();
 
+        setKey(
+            'test',
+            'ed25519:5Da461pSxbSX8pc8L2SiQMwgHJJBYEovMVp7XgZRZLVbf1sk8pu139ie89MftYEQBJtN5dLc349FPXgUyBBE1mpx',
+        );
+
         res.status(200).json({
             accountId,
             balance,

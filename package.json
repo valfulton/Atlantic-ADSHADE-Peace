@@ -1,5 +1,4 @@
 {
-    "type": "module",
     "private": true,
     "scripts": {
         "test:contract": "cd contract && cargo near build --no-docker && cd .. && ava ./tests/test.js --serial --timeout 30s",

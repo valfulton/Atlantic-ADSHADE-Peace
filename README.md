@@ -148,4 +148,8 @@ Using the SHA256 code hash as the Worker Agent's main identifier, you can create
 
 ## Running the test
 
-An e2e JavaScript test with `ava` is added in the folder
+Quirk: add `"type":"module"` to `package.json` before running tests. You will need to remove this before using NextJS `dev` or `build` again.
+
+An e2e JavaScript test with `ava` is provided that will deploy the contract to the sub account of your dev account.
+
+Your docker build of your NextJS app can target this contract by including the contractId in the Dockerfile.
