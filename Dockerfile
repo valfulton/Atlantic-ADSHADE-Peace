@@ -65,11 +65,9 @@ ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
 CMD ["node", "server.js"]
 
-# dev vars for both prod and dev using sim
-ENV NEXT_PUBLIC_contractId=dcap.magical-part.testnet
-
 FROM runner AS prod
 
+# build with dev vars only (use tappd sim)
 FROM runner AS dev
 # ENV DSTACK_SIMULATOR_ENDPOINT="http://host.docker.internal:8090"
 ENV DSTACK_SIMULATOR_ENDPOINT="http://172.17.0.1:8090"

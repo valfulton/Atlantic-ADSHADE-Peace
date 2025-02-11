@@ -1,7 +1,7 @@
 import Head from 'next/head';
 import styles from '../styles/Home.module.css';
 import { useState, useEffect } from 'react';
-import { contractView, getAccount } from '../utils/near-provider';
+import { contractView } from '../utils/near-provider';
 import { formatNearAmount } from 'near-api-js/lib/utils/format';
 
 export default function Home() {
@@ -97,6 +97,7 @@ export default function Home() {
                                 className={styles.card}
                                 onClick={async () => {
                                     const res = await contractView({
+                                        accountId: accountId,
                                         methodName: 'get_worker',
                                         args: {
                                             account_id: accountId,

@@ -1,5 +1,12 @@
 import * as dotenv from 'dotenv';
-dotenv.config({ path: './.env.development.local' });
+if (process.env.NODE_ENV !== 'production') {
+    // will load for browser and backend
+    dotenv.config({ path: './.env.development.local' });
+} else {
+    // load .env in production
+    dotenv.config();
+}
+
 import * as nearAPI from 'near-api-js';
 const {
     Near,
@@ -11,6 +18,7 @@ const {
 
 // from .env
 let _contractId = process.env.NEXT_PUBLIC_contractId;
+// from .env.development.local
 let secretKey = process.env.NEXT_PUBLIC_secretKey;
 let _accountId = process.env.NEXT_PUBLIC_accountId;
 
@@ -66,6 +74,7 @@ export const contractView = async ({
     args = {},
 }) => {
     const account = getAccount(accountId);
+
     let res;
     try {
         res = await account.viewFunction({

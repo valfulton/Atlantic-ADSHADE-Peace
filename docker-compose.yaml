@@ -6,7 +6,7 @@ services:
             dockerfile: Dockerfile
             target: prod
         platform: linux/amd64 # Explicitly set for TDX
-        image: mattdlockyer/based-agent-test:latest@sha256:20185547e526b6b49a7434507ecb5ad9ebb4e333c4fb8a6d3c059eb8157c522e
+        image: mattdlockyer/based-agent-test:latest@sha256:c4e0c505004bfd36cfc596efe652d8e1991e744a04251315a842ca9ca19c318f
         container_name: web
         ports:
             - '3000:3000'
