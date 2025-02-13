@@ -1,6 +1,6 @@
 # Based Agent Template
 
-This is a monorepo template for deploying a Based Agent on NEAR and Phala Cloud.
+This is a monorepo template for the Based Agent Stack with all the code and tools for deploying a Based Agent on NEAR and Phala Cloud.
 
 The template has 2 main components:
 
@@ -39,7 +39,7 @@ Worker Agents act as a bridge between the LLMs and the Smart Contracts that open
 The template includes the following code for the Worker Agent:
 
 1. Account derivation - derives a unique key (a NEAR Account) in the TEE instance. This key is in memory and inside the TEE, unable to be exfiltrated, verifiable by code inspection and the SHA256 hash of the docker image.
-1. `register_worke` - a TEE's remote attestation, including the Phala checksum and Docker image codehash are submitted to the Smart Contract from the TEE's derived account and verified by the contract.
+1. `register_worker` - a TEE's remote attestation, including the Phala checksum and Docker image codehash are submitted to the Smart Contract from the TEE's derived account and verified by the contract.
 1. `get_worker` - a convenience method to return the checksum for the Phala attestation explorer and the codehash of the docker image the Worker Agent is running.
 1. `is_verified_by_codehash(codehash)` - an example method which checks a Worker Agent is registered in the contract with the provided codehash matching the argument. **One example of how we can protect smart contract methods by only allowing access to registered Worker Agents with the correct code.**
 
@@ -57,16 +57,6 @@ Worker agents are stateless and ephemeral.
 -   Pre/post process LLM prompts/inference for smart contract method calls
 -   Arbitrary offchain compute, VMs, LLMs
 -   Access APIs and the web
-
-### Phala Cloud
-
-Phala Cloud is a TEE as a service provider to deploy multiple docker images inside a trusted execution environment. This environment exposes their dStack SDK to access the remote attestation of the TEE, derive entropy from a decentralized Key Management Service (KMS). dStack also provides the docker image codehash of the code running in the TEE.
-
-Based Agents gather the following data from the TEE Deployment on Phala Cloud:
-
-1. Remote attestation quote
-1. Unique key derived from entropy and the TEE's KMS
-1. docker-compose.yaml data which contains the SHA256 hash of the docker image
 
 ![image](https://github.com/user-attachments/assets/aae0db8a-cbcb-4a30-858b-3fcadc0f1f17)
 
@@ -132,20 +122,56 @@ Also stored for each Worker Agent is:
 -   the SHA256 hash of the Worker Agent docker image so that the code running is verifiable
 -   the checksum of the RA quote which can be verified on Phala Cloud's [TEE Attesation Explorer](https://proof.t16z.com/)
 
+# Deployment to Phala Cloud
+
+Phala Cloud is a TEE as a service provider to deploy multiple docker images inside a trusted execution environment. This environment exposes their dStack SDK to access the remote attestation of the TEE, derive entropy from a decentralized Key Management Service (KMS). dStack also provides the docker image codehash of the code running in the TEE.
+
+Based Agents gather the following data from the TEE Deployment on Phala Cloud:
+
+1. Remote attestation quote
+1. Unique key derived from entropy and the TEE's KMS
+1. docker-compose.yaml data which contains the SHA256 hash of the docker image
+
+## Building and Pushing Docker Image
+
+In order to deploy a Worker Agent you will need to build and push a docker image to Docker Hub.
+
+Create a Docker Hub account and login on the command line with `docker login`.
+
+Check the scripts in `package.json` and update `docker:build` and `docker:push` to reflect your docker hub repository name and account.
+
+You can then use these scripts to build and push a docker image.
+
+## Deployment .yaml for Phala
+
+The `docker-compose.yaml` contains all of the information necessary to deploy a Worker Agent to Phala Cloud.
+
+You will need to update this file to reflect your docker hub account, repository name and the sha256 hash of your docker image (this is visible in the CLI after you push your build to docker hub).
+
+On Phala Cloud, click on `deploy` then select `from sketch` and click the `advanced` tab. Paste in the `yaml` and give the instance a name. Check resources and deploy.
+
+That's it!
+
+Some tips for Phala Cloud:
+
+-   Click on the instance name to view details
+-   In details click `network` tab to get the address of the live instance
+-   In details click `containers` tab to pull up live logs
+
 # Local Development and Example UI
 
 The Worker Agent template is a NextJS application that offers both an API via the `/pages/api` routes and an optional UI under `/pages`.
 
-The UI found at `index.js` is intended to guide through the first steps of verifying the worker agent running in the TEE against the NEAR Contract. _Note: this is only possible when deployed on Phala Cloud._ In order to pass the verification in the NEAR Contract, your API Layer must be deployed on Phala Cloud and running on TEE hardware to get a valid remote attestation (RA) quote, that can be verified by the NEAR Contract.
+The UI found at `index.js` is intended to guide through the first steps of verifying the worker agent running in the TEE against the NEAR Contract. _Note: this is only possible when deployed on Phala Cloud._ In order to pass the verification in the NEAR Contract, the API Layer must be deployed on Phala Cloud and running on TEE hardware to get a valid remote attestation (RA) quote, that can be verified by the NEAR Contract.
 
-However, this does not stop you from developing your Worker Agent. You can add your own API routes, call external APIs, work with data, and prepare your NEAR Contract calls. In fact, you can skip the verification step in your NEAR Contract, and make calls with the assumption that you will add in the proper logic to "allow list" these calls only by verified based agents when the NEAR Contract is deployed live.
+However, this does not stop one from developing the Worker Agent. Add API routes, call external APIs, work with data, and prepare the NEAR Contract calls. In fact, skip the verification step in the NEAR Contract, and make calls with the assumption that the Worker Agent will add in the proper logic to "allow list" these calls only by verified based agents when the NEAR Contract is deployed live.
 
-To develop locally, you need only use:
+To develop locally, use:
 
 -   `yarn`
 -   `yarn dev`
 
-For making calls to the NEAR Contract it's recommended you provide a local `.env.development.local` file with the following fields:
+For making calls to the NEAR Contract, create a local `.env.development.local` file with the following fields:
 
 ```bash
 NEXT_PUBLIC_accountId=[YOUR_NEAR_DEV_ACCOUNT_ID]
@@ -154,8 +180,6 @@ NEXT_PUBLIC_contractId=[YOUR_PROTOCOL_NAME].[YOUR_NEAR_DEV_ACCOUNT_ID]
 ```
 
 This dev account will be used to call the NEAR Contract. It won't be used when you deploy to Phala Cloud. The template will create an ephemeral NEAR Account and in the UI example will ask for funds before verification and subsequent calls to the contract can be made.
-
-Unless you con
 
 # NEAR Contract & Local Development
 
@@ -190,3 +214,125 @@ NEXT_PUBLIC_contractId=dcap.magical-part.testnet
 ```
 
 Your docker build of your NextJS app can target this contract by including the contractId in the Dockerfile.
+
+# Design Patterns for Method Access Control
+
+One of the biggest features of the Based Agent Stack is method access control of the Smart Contract.
+
+## What is Method Access Control?
+
+Coming from the EVM space, you might have seen something like this before:
+
+```rust
+import "@openzeppelin/contracts/access/Ownable.sol";
+contract MyContract is Ownable {
+    function protectedMethod() public onlyOwner {
+        // only the owner can call protectedMethod()
+    }
+}
+```
+
+And if you were to dive into the code for `@openzeppelin/contracts/access/Ownable.sol` you would find a short contract that handles the ownership of the `onlyOwner` modifier.
+
+In most cases this boils down to a simple `if` statement that can be paraphrased as: "does the owner stored in the contract state, equal the transaction sender".
+
+## How is Access Control Done on NEAR?
+
+In NEAR, the transaction caller is referred to as the `predecessor` and we can get the AccountId from `env::predecessor_account_id()`.
+
+Typically we would have a statement like this at the top of a NEAR Smart Contract method:
+
+```rust
+require!(self.owner_id === env::predecessor_account_id())
+```
+
+## Manage Access Control by Verified Worker Agent and Codehash?
+
+In the Based Agent stack, we're looking to register a Worker Agent in the smart contract that can verify they are running in a TEE.
+
+We've explained above about how this is done and can register the Worker Agent, but how do we control access to different methods?
+
+As mentioned above, the transaction caller in NEAR is the `predecessor_account_id`, and we register Worker Agents by their AccountId in an IterableMap (a hash table) of type `<AccountId, Worker>`.
+
+So if we wanted to restrict a method access to a Worker Agent with only a specific codehash, we could do the following:
+
+```rust
+pub fn protected_by_codehash_a(&mut self) {
+	let worker = self.get_worker(env::predecessor_account_id());
+	require!(CODEHASH_A == worker.codehash);
+	...
+	// amazing worker agent code
+}
+```
+
+Where `CODEHASH_A` is a const in the Smart Contract.
+
+## Managing a List of Codehashes
+
+Using a const hardcoded in the contract can be a brittle approach. For this reason we can build in a list of approved codehashes that can be managed by devs or upgraded by a DAO process.
+
+Example:
+
+```rust
+pub struct Contract {
+    ...
+	pub approved_codehashes: IterableSet<String>,
+	...
+}
+
+pub fn approve_codehash(&mut self, codehash: String) {
+	// !!! REQUIRES ONLY OWNER OR SOME MORE RIGOR  !!!
+	self.approved_codehashes.insert(codehash);
+}
+
+pub fn has_approved_codehash(&mut self, account_id: AccountId) {
+	let worker = self.get_worker(account_id);
+	require!(self.approved_codehashes.contains(&worker.codehash));
+}
+
+/// will throw on client if worker agent is not registered with a codehash in self.approved_codehashes
+pub fn protected_by_approved_codehashes(&mut self) {
+	require!(self.has_approved_codehash(env::predecessor_account_id()));
+	...
+	// amazing worker agent code
+}
+```
+
+## Managing Different Workers for Different Methods
+
+In order to accomplish this we would simply extend the example above to maintain different lists of codehashes, grouped by the Worker Agents for our methods.
+
+Example:
+
+```rust
+pub struct Contract {
+    ...
+	pub codehashes_a: IterableSet<String>,
+	pub codehashes_b: IterableSet<String>,
+	pub codehashes_c: IterableSet<String>,
+	...
+}
+
+pub fn approve_codehash(&mut self, codehash: String) {
+	// !!! REQUIRES ONLY OWNER OR SOME MORE RIGOR  !!!
+	self.approved_codehashes.insert(codehash);
+}
+
+pub fn has_approved_codehash(&mut self, account_id: AccountId, group: &str) {
+	let worker = self.get_worker(account_id);
+	match group {
+		"a" => require!(self.codehashes_a.contains(&worker.codehash)),
+		"b" => require!(self.codehashes_b.contains(&worker.codehash)),
+		"c" => require!(self.codehashes_c.contains(&worker.codehash)),
+		_ => require!(false)
+	}
+	;
+}
+
+/// will throw on client if worker agent is not registered with a codehash in self.approved_codehashes
+pub fn protected_by_codehashes_c(&mut self) {
+	require!(self.has_approved_codehash(env::predecessor_account_id(), "c"));
+	...
+	// amazing worker agent code
+}
+```

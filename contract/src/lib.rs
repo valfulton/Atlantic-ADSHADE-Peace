@@ -69,7 +69,7 @@ impl Contract {
         self.approved_codehashes.insert(codehash);
     }
 
-    /// will throw on client if worker agent codehash is not contained in self.approved_codehashes
+    /// will throw on client if worker agent is not registered with a codehash in self.approved_codehashes
     pub fn is_verified_by_approved_codehash(&mut self) {
         let worker = self.get_worker(env::predecessor_account_id());
 
