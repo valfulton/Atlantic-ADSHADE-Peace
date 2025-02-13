@@ -88,6 +88,9 @@ impl Contract {
         checksum: String,
         codehash: String,
     ) -> bool {
+        // uncomment this line to only allow workers to register if their codehash arg is approved
+        // require!(self.approved_codehashes.contains(&codehash));
+
         let collateral = collateral::get_collateral(collateral);
         let quote = decode(quote_hex).unwrap();
         let now = block_timestamp() / 1000000000;
