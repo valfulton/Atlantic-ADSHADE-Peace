@@ -87,7 +87,7 @@ test('call is_worker_verified', async (t) => {
     // will throw if the worker was not registered
     await contractCall({
         contractId,
-        methodName: 'is_worker_verified',
+        methodName: 'is_verified_by_codehash',
         args: {
             codehash: 'bar',
         },
@@ -126,6 +126,30 @@ test('call get_worker', async (t) => {
     });
 
     console.log('worker', res);
+
+    t.pass();
+});
+
+test('call approve_codehash', async (t) => {
+    // will throw if the worker was not registered
+    await contractCall({
+        contractId,
+        methodName: 'approve_codehash',
+        args: {
+            codehash: 'bar',
+        },
+    });
+
+    t.pass();
+});
+
+test('call is_verified_by_approved_codehash', async (t) => {
+    // will throw if the worker was not registered
+    await contractCall({
+        contractId,
+        methodName: 'is_verified_by_approved_codehash',
+        args: {},
+    });
 
     t.pass();
 });

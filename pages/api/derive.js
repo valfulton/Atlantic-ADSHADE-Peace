@@ -6,7 +6,7 @@ import 'dotenv/config';
 
 export const dynamic = 'force-dynamic';
 
-// randomness only available to this instance of TEE
+// in-memory randomness only available to this instance of TEE
 const randomArray = new Uint8Array(32);
 crypto.getRandomValues(randomArray);
 
@@ -18,11 +18,6 @@ export default async function derive(req, res) {
         const account = getAccount(accountId);
         const balance = await account.getAccountBalance();
 
-        setKey(
-            'test',
-            'ed25519:5Da461pSxbSX8pc8L2SiQMwgHJJBYEovMVp7XgZRZLVbf1sk8pu139ie89MftYEQBJtN5dLc349FPXgUyBBE1mpx',
-        );
-
         res.status(200).json({
             accountId,
             balance,
@@ -32,10 +27,8 @@ export default async function derive(req, res) {
 
     const client = new TappdClient(endpoint);
     // randomness from TEE hardware
-    const randomDeriveKey = await client.deriveKey(
-        Buffer.from(randomArray).toString('hex'),
-        Buffer.from(randomArray).toString('hex'),
-    );
+    const randomString = Buffer.from(randomArray).toString('hex');
+    const randomDeriveKey = await client.deriveKey(randomString, randomString);
     // hash of combined randomness
     const hash = await crypto.subtle.digest(
         'SHA-256',
@@ -49,20 +42,7 @@ export default async function derive(req, res) {
     // set the secretKey (inMemoryKeyStore only)
     setKey(accountId, data.secretKey);
 
-    let balance = { available: '0' };
-    try {
-        const account = getAccount(accountId);
-        balance = await account.getAccountBalance();
-    } catch (e) {
-        if (e.type === 'AccountDoesNotExist') {
-            console.log(e.type);
-        } else {
-            throw e;
-        }
-    }
-
     res.status(200).json({
         accountId,
-        balance,
     });
 }

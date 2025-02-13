@@ -1,21 +1,42 @@
 import Head from 'next/head';
 import styles from '../styles/Home.module.css';
 import { useState, useEffect } from 'react';
-import { contractView } from '../utils/near-provider';
+import { contractView, getBalance } from '../utils/near-provider';
 import { formatNearAmount } from 'near-api-js/lib/utils/format';
+import Overlay from '../components/Overlay';
+
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 export default function Home() {
+    const [message, setMessage] = useState('');
     const [accountId, setAccountId] = useState();
-    const [balance, setBalance] = useState();
+    const [balance, setBalance] = useState({ available: '0' });
 
-    const getKey = async () => {
+    const setMessageHide = async (message, dur = 3000) => {
+        setMessage(message);
+        await sleep(dur);
+        setMessage('');
+    };
+
+    const getBalanceSleep = async (accountId) => {
+        await sleep(1000);
+        const balance = await getBalance(accountId);
+
+        if (balance.available === '0') {
+            getBalanceSleep(accountId);
+            return;
+        }
+        setBalance(balance);
+    };
+
+    const deriveAccount = async () => {
         const res = await fetch('/api/derive').then((r) => r.json());
         setAccountId(res.accountId);
-        setBalance(res.balance);
+        getBalanceSleep(res.accountId);
     };
 
     useEffect(() => {
-        getKey();
+        deriveAccount();
     }, []);
 
     return (
@@ -24,6 +45,7 @@ export default function Home() {
                 <title>Based Agent Template</title>
                 <link rel="icon" href="/favicon.ico" />
             </Head>
+            <Overlay message={message} />
 
             <main className={styles.main}>
                 <h1 className={styles.title}>Based Agent Template</h1>
@@ -47,7 +69,7 @@ export default function Home() {
                     <div className={styles.card}>
                         <h3>Step 1.</h3>
                         <p>
-                            Fund the worker agent's account:
+                            Fund Worker Agent account:
                             <br />
                             <br />
                             {accountId?.length >= 24
@@ -55,9 +77,11 @@ export default function Home() {
                                 : accountId}
                             <br />
                             <button
-                                onClick={() =>
-                                    navigator.clipboard.writeText(accountId)
-                                }
+                                className={styles.btn}
+                                onClick={() => {
+                                    navigator.clipboard.writeText(accountId);
+                                    setMessageHide('copied', 500);
+                                }}
                             >
                                 copy
                             </button>
@@ -70,22 +94,42 @@ export default function Home() {
                         </p>
                     </div>
 
-                    {parseInt(balance?.available, 10) !== 0 && (
+                    {balance.available !== '0' && (
                         <>
                             <a
                                 href="#"
                                 className={styles.card}
                                 onClick={async () => {
-                                    const res = await fetch(
-                                        '/api/register',
-                                    ).then((r) => r.json());
+                                    setMessage('Registering Worker');
 
-                                    console.log(res);
+                                    let res;
+                                    try {
+                                        res = await fetch('/api/register').then(
+                                            (r) => r.json(),
+                                        );
+                                    } catch (e) {
+                                        console.log(e);
+                                        setMessageHide(
+                                            'register_worker error: ' +
+                                                JSON.stringify(e, 4),
+                                        );
+                                    }
+
+                                    setMessageHide(
+                                        <>
+                                            <p>register_worker response:</p>
+                                            <p className={styles.code}>
+                                                registered:{' '}
+                                                {JSON.stringify(res.registered)}
+                                            </p>
+                                        </>,
+                                    );
                                 }}
                             >
                                 <h3>Step 2.</h3>
                                 <p>
-                                    Verify the worker agent in the contract:
+                                    Register the Worker Agent in the smart
+                                    contract:
                                     <br />
                                     <br />
                                     {process.env.NEXT_PUBLIC_contractId}
@@ -96,19 +140,76 @@ export default function Home() {
                                 href="#"
                                 className={styles.card}
                                 onClick={async () => {
-                                    const res = await contractView({
-                                        accountId: accountId,
-                                        methodName: 'get_worker',
-                                        args: {
-                                            account_id: accountId,
-                                        },
-                                    });
+                                    setMessage('Calling get_worker');
 
-                                    console.log(res);
+                                    let res;
+                                    try {
+                                        res = await contractView({
+                                            accountId: accountId,
+                                            methodName: 'get_worker',
+                                            args: {
+                                                account_id: accountId,
+                                            },
+                                        });
+
+                                        console.log(res);
+                                    } catch (e) {
+                                        console.log(e);
+                                        setMessageHide(
+                                            'get_worker error: ' +
+                                                JSON.stringify(e, 4),
+                                        );
+                                    }
+
+                                    setMessageHide(
+                                        <>
+                                            <p>get_worker response:</p>
+                                            <p className={styles.code}>
+                                                checksum: {res.checksum}
+                                            </p>
+                                            <p className={styles.code}>
+                                                codehash: {res.codehash}
+                                            </p>
+                                        </>,
+                                    );
                                 }}
                             >
-                                <h3>Step 3.</h3>
-                                <p>Check if this agent is verified.</p>
+                                <h3>Get Worker Info</h3>
+                                <p>(registered only)</p>
+                            </a>
+
+                            <a
+                                href="#"
+                                className={styles.card}
+                                onClick={async () => {
+                                    setMessage(
+                                        'Calling is_verified_by_codehash',
+                                    );
+
+                                    // we need to call the contract from the TEE through the backend API
+                                    // the TEE keyPair is never exposed to the browser
+                                    // this method will not throw
+                                    // returns { verified: true|false }
+                                    const res = await fetch(
+                                        '/api/isVerified',
+                                    ).then((r) => r.json());
+
+                                    setMessageHide(
+                                        <>
+                                            <p>
+                                                is_verified_by_codehash
+                                                response:
+                                            </p>
+                                            <p className={styles.code}>
+                                                verified:{' '}
+                                                {JSON.stringify(res.verified)}
+                                            </p>
+                                        </>,
+                                    );
+                                }}
+                            >
+                                <h3>Call Protected Method</h3>
+                                <p>(registered only)</p>
                             </a>
                         </>
                     )}
@@ -117,15 +218,20 @@ export default function Home() {
 
             <footer className={styles.footer}>
                 <a
-                    href="https://vercel.com?utm_source=create-next-app&utm_medium=default-template&utm_campaign=create-next-app"
+                    href="https://proximity.dev"
                     target="_blank"
                     rel="noopener noreferrer"
                 >
                     Powered by{' '}
                     <img
-                        src="/vercel.svg"
-                        alt="Vercel Logo"
+                        src="/symbol.svg"
+                        alt="Proximity Logo"
                         className={styles.logo}
+                    />
+                    <img
+                        src="/wordmark_black.svg"
+                        alt="Proximity Logo"
+                        className={styles.wordmark}
                     />
                 </a>
             </footer>

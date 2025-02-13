@@ -46,6 +46,7 @@ export const setKey = (accountId, secretKey) => {
     if (!accountId || !secretKey) return;
     _accountId = accountId;
     const keyPair = KeyPair.fromString(secretKey);
+    // set in-memory keystore only
     keyStore.setKey(networkId, accountId, keyPair);
 };
 // .env.development.local - automatically set key to dev account
@@ -64,6 +65,21 @@ export const getImplicit = (pubKeyStr) =>
     Buffer.from(PublicKey.from(pubKeyStr).data).toString('hex').toLowerCase();
 
 export const getAccount = (id = _accountId) => new Account(connection, id);
+
+export const getBalance = async (accountId) => {
+    let balance = { available: '0' };
+    try {
+        const account = getAccount(accountId);
+        balance = await account.getAccountBalance();
+    } catch (e) {
+        if (e.type === 'AccountDoesNotExist') {
+            console.log(e.type);
+        } else {
+            throw e;
+        }
+    }
+    return balance;
+};
 
 // contract interactions
 
@@ -141,16 +157,6 @@ export const contractCall = async ({
     }
     return parseSuccessValue(res);
 };
-
-// const getTxResult = async (txHash) => {
-//     const transaction = await provider.txStatus(txHash, 'unnused');
-//     return transaction;
-// };
-
-// const getTxSuccessValue = async (txHash) => {
-//     const transaction = await getTxResult(txHash);
-//     return parseSuccessValue(transaction);
-// };
 
 const parseSuccessValue = (transaction) => {
     if (transaction.status.SuccessValue.length === 0) return;

@@ -243,8 +243,6 @@ export class TappdClient {
             '',
         );
 
-        console.log(typeof result, result);
-
         return result;
     }
 

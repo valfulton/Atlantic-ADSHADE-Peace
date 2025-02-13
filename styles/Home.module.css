@@ -1,3 +1,30 @@
+.overlay {
+  min-height: 100vh;
+  min-width: 100%;
+  position: fixed;
+  top: 0;
+  left: 0;
+  background: rgba(0, 0, 0, 0.25);
+  padding: 0 0.5rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+}
+
+.message {
+  background: white;
+  padding: 1rem;
+  border-radius: 0.5rem;
+  min-width: 50%;
+  min-height: 300px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  word-break: break-all;
+}
+
 .container {
   min-height: 100vh;
   padding: 0 0.5rem;
@@ -5,6 +32,14 @@
   flex-direction: column;
   justify-content: center;
   align-items: center;
+}
+
+.btn {
+  font-family: sans-serif;
+  border: 1px solid #bbb;
+}
+.btn:hover {
+  background-color: #bbb;
 }
 
 .main {
@@ -120,7 +155,10 @@
 }
 
 .logo {
-  height: 1em;
+  height: 3em;
+}
+.wordmark {
+  height: 2em;
 }
 
 @media (max-width: 600px) {

@@ -2,7 +2,7 @@ use hex::decode;
 use near_sdk::{
     env::{self, block_timestamp},
     log, near, require,
-    store::IterableMap,
+    store::{IterableMap, IterableSet},
     AccountId, PanicOnDefault,
 };
 
@@ -21,6 +21,7 @@ pub struct Worker {
 #[derive(PanicOnDefault)]
 pub struct Contract {
     pub owner_id: AccountId,
+    pub approved_codehashes: IterableSet<String>,
     pub worker_by_account_id: IterableMap<AccountId, Worker>,
 }
 
@@ -31,11 +32,12 @@ impl Contract {
     pub fn init(owner_id: AccountId) -> Self {
         Self {
             owner_id,
-            worker_by_account_id: IterableMap::new(b"a"),
+            approved_codehashes: IterableSet::new(b"a"),
+            worker_by_account_id: IterableMap::new(b"b"),
         }
     }
 
-    // method access control
+    // helpers for method access control
 
     pub fn require_owner(&mut self) {
         require!(env::predecessor_account_id() == self.owner_id);
@@ -51,12 +53,29 @@ impl Contract {
         require!(worker.codehash == codehash);
     }
 
-    // example and test method
+    // examples for method access control
 
     /// will throw on client if caller is not verified for the provided codehash
-    pub fn is_worker_verified(&mut self, codehash: String) {
+    pub fn is_verified_by_codehash(&mut self, codehash: String) {
         self.require_worker(codehash);
-        // worker agent does something amazing here after being registered
+
+        // worker agent does something amazing here
+        log!("The agent abides.")
+    }
+
+    pub fn approve_codehash(&mut self, codehash: String) {
+        // !!! UPGRADE TO YOUR METHOD OF MANAGING APPROVED WORKER AGENT CODEHASHES !!!
+        self.require_owner();
+        self.approved_codehashes.insert(codehash);
+    }
+
+    /// will throw on client if worker agent codehash is not contained in self.approved_codehashes
+    pub fn is_verified_by_approved_codehash(&mut self) {
+        let worker = self.get_worker(env::predecessor_account_id());
+
+        require!(self.approved_codehashes.contains(&worker.codehash));
+
+        // worker agent does something amazing here
         log!("The agent abides.")
     }
 

@@ -11,9 +11,7 @@ export default async function register(req, res) {
 
     // get tcb info from tappd
     const { tcb_info } = await client.getInfo();
-    console.log(typeof tcb_info, tcb_info);
     const { app_compose } = JSON.parse(tcb_info);
-    console.log(typeof app_compose, app_compose);
     // first sha256: match of docker-compose.yaml will be codehash (arrange docker-compose.yaml accordingly)
     const [codehash] = app_compose.match(/sha256:([a-f0-9]*)/gim);
 
@@ -54,5 +52,5 @@ export default async function register(req, res) {
         },
     });
 
-    res.status(200).json({ register_worker: res3 });
+    res.status(200).json({ registered: res3 });
 }
