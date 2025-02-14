@@ -69,9 +69,15 @@ The template provides a NEAR Smart Contract for the following:
 
 ## 3. NEAR Intents and Chain Signatures
 
-[NEAR Intents](https://docs.near.org/build/chain-abstraction/what-is#intent--solver-layer)
+[NEAR Intents](https://docs.near.org/chain-abstraction/intents/overview)
+
+In NEAR, an intent is a high level declaration of what a user wants to achieve. Think of it as telling the blockchain "what" you want to do, not "how" to do it.
 
 [NEAR Chain Signatures](https://docs.near.org/concepts/abstraction/chain-signatures)
+
+Chain signatures enable NEAR accounts, including smart contracts, to sign and execute transactions across many blockchain protocols.
+
+This unlocks the next level of blockchain interoperability by giving ownership of diverse assets, cross-chain accounts, and data to every single NEAR account.
 
 # What can be built with Based Agents?
 
