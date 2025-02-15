@@ -105,7 +105,7 @@ LLMs could be used to:
 
 Based Agents have a Worker Agent that is running inside a trusted execution environment (TEE) and a NEAR Smart Contract deployed onchain. Here are the following steps that the Worker Agent takes to verify itself onchain, so that subsequent calls from the Worker Agent can be trusted.
 
-![image](https://github.com/user-attachments/assets/03c143de-a807-4ba2-b449-726beaa260ee)
+![image](https://github.com/user-attachments/assets/295d2f7d-cfa7-4eac-bd82-9cb56eb44964)
 
 ## 1. Ephemeral key for a NEAR Account
 
