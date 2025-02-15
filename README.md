@@ -58,8 +58,6 @@ Worker agents are stateless and ephemeral.
 -   Arbitrary offchain compute, VMs, LLMs
 -   Access APIs and the web
 
-![image](https://github.com/user-attachments/assets/aae0db8a-cbcb-4a30-858b-3fcadc0f1f17)
-
 ## 2. Smart Contract
 
 The template provides a NEAR Smart Contract for the following:
@@ -106,6 +104,8 @@ LLMs could be used to:
 # How a Based Agent is Verified?
 
 Based Agents have a Worker Agent that is running inside a trusted execution environment (TEE) and a NEAR Smart Contract deployed onchain. Here are the following steps that the Worker Agent takes to verify itself onchain, so that subsequent calls from the Worker Agent can be trusted.
+
+![image](https://github.com/user-attachments/assets/03c143de-a807-4ba2-b449-726beaa260ee)
 
 ## 1. Ephemeral key for a NEAR Account
 
