@@ -1,6 +1,8 @@
-# Based Agent Template
+# Shade Agents
 
-This is a monorepo template for the Based Agent Stack with all the code and tools for deploying a Based Agent on NEAR and Phala Cloud.
+## Shade Agent Template
+
+This is a monorepo template for the Shade Agent Stack with all the code and tools for deploying a Shade Agent on NEAR and Phala Cloud.
 
 The template has 2 main components:
 
@@ -11,11 +13,11 @@ The template has 2 main components:
 
 [![Workshop Video](https://img.youtube.com/vi/MCUWLUZuqJc/0.jpg)](https://youtu.be/MCUWLUZuqJc)
 
-# Based Agents
+# Shade Agents
 
-Based Agents are multichain crypto AI agents, verifiable from source code through to their transactions across any blockchain.
+Shade Agents are multichain crypto AI agents, verifiable from source code through to their transactions across any blockchain.
 
-Based Agents can:
+Shade Agents can:
 
 -   Verifiably access off-chain LLMs, APIs and data
 -   Sign transactions for any chain
@@ -24,7 +26,7 @@ Based Agents can:
 
 ![image](https://github.com/user-attachments/assets/9b0e4769-ffd0-4633-a1df-fc4db64516e9)
 
-Components of a Based Agent are:
+Components of a Shade Agent are:
 
 1. Worker Agent deployment in a TEE
 1. Smart Contract to verify a TEE's remote attestation and stack
@@ -43,7 +45,7 @@ The template includes the following code for the Worker Agent:
 1. `get_worker` - a convenience method to return the checksum for the Phala attestation explorer and the codehash of the docker image the Worker Agent is running.
 1. `is_verified_by_codehash(codehash)` - an example method which checks a Worker Agent is registered in the contract with the provided codehash matching the argument. **One example of how we can protect smart contract methods by only allowing access to registered Worker Agents with the correct code.**
 
-Subsequent Worker Agent code and calls to the NEAR Contract are left to the developer and their custom smart contract development for their projects using Based Agents.
+Subsequent Worker Agent code and calls to the NEAR Contract are left to the developer and their custom smart contract development for their projects using Shade Agents.
 
 ### Availability
 
@@ -77,7 +79,7 @@ Chain signatures enable NEAR accounts, including smart contracts, to sign and ex
 
 This unlocks the next level of blockchain interoperability by giving ownership of diverse assets, cross-chain accounts, and data to every single NEAR account.
 
-# What can be built with Based Agents?
+# What can be built with Shade Agents?
 
 Pretty much anything...
 
@@ -91,19 +93,19 @@ Pretty much anything...
 
 ## How to leverage LLMs
 
-_LLMs running in TEEs with the Based Agent stack = verifiable inference_
+_LLMs running in TEEs with the Shade Agent stack = verifiable inference_
 
-LLMs deployed as docker images can easily be leveraged by other applications deployed in the same docker stack. With Based Agents, an LLM deployed as a docker image is used by the Worker Agent in the same docker stack on the Trusted Execution Environment (TEE). Based Agents can use 1 or more LLMs to provide the inference for the Worker Agent.
+LLMs deployed as docker images can easily be leveraged by other applications deployed in the same docker stack. With Shade Agents, an LLM deployed as a docker image is used by the Worker Agent in the same docker stack on the Trusted Execution Environment (TEE). Shade Agents can use 1 or more LLMs to provide the inference for the Worker Agent.
 
 LLMs could be used to:
 
 -   interpret API calls and provide reasoning and inference that translates these to more specific smart contract method calls
 -   digest sentiment from realtime data and provide higher order actions
--   reason about multiple sources and provide summary insights, for example Based Agent price oracle vs. multi party computation
+-   reason about multiple sources and provide summary insights, for example Shade Agent price oracle vs. multi party computation
 
-# How a Based Agent is Verified?
+# How a Shade Agent is Verified?
 
-Based Agents have a Worker Agent that is running inside a trusted execution environment (TEE) and a NEAR Smart Contract deployed onchain. Here are the following steps that the Worker Agent takes to verify itself onchain, so that subsequent calls from the Worker Agent can be trusted.
+Shade Agents have a Worker Agent that is running inside a trusted execution environment (TEE) and a NEAR Smart Contract deployed onchain. Here are the following steps that the Worker Agent takes to verify itself onchain, so that subsequent calls from the Worker Agent can be trusted.
 
 ![image](https://github.com/user-attachments/assets/295d2f7d-cfa7-4eac-bd82-9cb56eb44964)
 
@@ -113,7 +115,7 @@ The Worker Agent has an API route (`/pages/api/derive`) that creates a key deriv
 
 A new instanct of the Worker Agent deployed with the same code will have access to the same methods in the Smart Contract, this is by design. The worker agent registration (described above) verifies the TEE and the codehash of the Worker Agent.
 
-The Based Agent stack design pattern protects the Smart Contract methods by registered Worker Agent's with the correct codehash.
+The Shade Agent stack design pattern protects the Smart Contract methods by registered Worker Agent's with the correct codehash.
 
 ## 2. Remote Attestation (RA) quote, quote collateral and docker image hashes
 
@@ -132,7 +134,7 @@ Also stored for each Worker Agent is:
 
 Phala Cloud is a TEE as a service provider to deploy multiple docker images inside a trusted execution environment. This environment exposes their dStack SDK to access the remote attestation of the TEE, derive entropy from a decentralized Key Management Service (KMS). dStack also provides the docker image codehash of the code running in the TEE.
 
-Based Agents gather the following data from the TEE Deployment on Phala Cloud:
+Shade Agents gather the following data from the TEE Deployment on Phala Cloud:
 
 1. Remote attestation quote
 1. Unique key derived from entropy and the TEE's KMS
@@ -170,7 +172,7 @@ The Worker Agent template is a NextJS application that offers both an API via th
 
 The UI found at `index.js` is intended to guide through the first steps of verifying the worker agent running in the TEE against the NEAR Contract. _Note: this is only possible when deployed on Phala Cloud._ In order to pass the verification in the NEAR Contract, the API Layer must be deployed on Phala Cloud and running on TEE hardware to get a valid remote attestation (RA) quote, that can be verified by the NEAR Contract.
 
-However, this does not stop one from developing the Worker Agent. Add API routes, call external APIs, work with data, and prepare the NEAR Contract calls. In fact, skip the verification step in the NEAR Contract, and make calls with the assumption that the Worker Agent will add in the proper logic to "allow list" these calls only by verified based agents when the NEAR Contract is deployed live.
+However, this does not stop one from developing the Worker Agent. Add API routes, call external APIs, work with data, and prepare the NEAR Contract calls. In fact, skip the verification step in the NEAR Contract, and make calls with the assumption that the Worker Agent will add in the proper logic to "allow list" these calls only by verified shade agents when the NEAR Contract is deployed live.
 
 To develop locally, use:
 
@@ -223,7 +225,7 @@ Your docker build of your NextJS app can target this contract by including the c
 
 # Design Patterns for Method Access Control
 
-One of the biggest features of the Based Agent Stack is method access control of the Smart Contract.
+One of the biggest features of the Shade Agent Stack is method access control of the Smart Contract.
 
 ## What is Method Access Control?
 
@@ -254,7 +256,7 @@ require!(self.owner_id === env::predecessor_account_id())
 
 ## Manage Access Control by Verified Worker Agent and Codehash?
 
-In the Based Agent stack, we're looking to register a Worker Agent in the smart contract that can verify they are running in a TEE.
+In the Shade Agent stack, we're looking to register a Worker Agent in the smart contract that can verify they are running in a TEE.
 
 We've explained above about how this is done and can register the Worker Agent, but how do we control access to different methods?
 
