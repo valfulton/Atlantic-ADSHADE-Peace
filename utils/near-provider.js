@@ -24,16 +24,24 @@ let _accountId = process.env.NEXT_PUBLIC_accountId;
 
 export const contractId = _contractId;
 
-const networkId = 'testnet';
+const networkId = /testnet/gi.test(contractId) ? 'testnet' : 'mainnet';
 const keyStore = new keyStores.InMemoryKeyStore();
-const config = {
-    networkId,
-    keyStore,
-    nodeUrl: 'https://rpc.testnet.near.org',
-    walletUrl: 'https://testnet.mynearwallet.com/',
-    helperUrl: 'https://helper.testnet.near.org',
-    explorerUrl: 'https://testnet.nearblocks.io',
-};
+const config =
+    networkId === 'testnet'
+        ? {
+              networkId,
+              keyStore,
+              nodeUrl: 'https://rpc.testnet.near.org',
+              walletUrl: 'https://testnet.mynearwallet.com/',
+              explorerUrl: 'https://testnet.nearblocks.io',
+          }
+        : {
+              networkId,
+              keyStore,
+              nodeUrl: 'https://rpc.near.org',
+              walletUrl: 'https://mynearwallet.com/',
+              explorerUrl: 'https://nearblocks.io',
+          };
 const near = new Near(config);
 const { connection } = near;
 const { provider } = connection;
