@@ -47,11 +47,15 @@ The template includes the following code for the Worker Agent:
 
 Subsequent Worker Agent code and calls to the NEAR Contract are left to the developer and their custom smart contract development for their projects using Shade Agents.
 
-### Availability
+### Availability and Key Management
 
 <img width="1400" alt="3 (3)" src="https://github.com/user-attachments/assets/c1655bc5-c8ed-496c-9396-58a009e675f8" />
 
 Worker Agents can go offline. However, anyone with access to the same docker image can boot their own instance inside a TEE and register in the smart contract. This provides the new instance of the Worker Agent with access to the same methods as a previous instance.
+
+Since keys are managed by the Smart Contract and not the agent, as long as a new Worker Agent is verified and can reach the protected part of the code, it can continue to contribute to the protocol.
+
+With a NEAR Smart Contract, we have keys managed by Chain Signatures, NEAR's MPC Key Management service. This service generates signatures, without ever revealing the private key. By using Chain Signatures, even malicious agents cannot exfiltrate the keys associated with the protocol or user's funds.
 
 ### What can be include in the Worker Agent? (remember it's verified!):
 
