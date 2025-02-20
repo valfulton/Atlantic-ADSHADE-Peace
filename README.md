@@ -24,7 +24,7 @@ Shade Agents can:
 -   Custody cryptoassets
 -   Preserve privacy
 
-![image](https://github.com/user-attachments/assets/9b0e4769-ffd0-4633-a1df-fc4db64516e9)
+<img width="1400" alt="1 (3)" src="https://github.com/user-attachments/assets/d3f9bb36-2832-4690-aa88-005b4c67a224" />
 
 Components of a Shade Agent are:
 
@@ -48,6 +48,8 @@ The template includes the following code for the Worker Agent:
 Subsequent Worker Agent code and calls to the NEAR Contract are left to the developer and their custom smart contract development for their projects using Shade Agents.
 
 ### Availability
+
+<img width="1400" alt="3 (3)" src="https://github.com/user-attachments/assets/c1655bc5-c8ed-496c-9396-58a009e675f8" />
 
 Worker Agents can go offline. However, anyone with access to the same docker image can boot their own instance inside a TEE and register in the smart contract. This provides the new instance of the Worker Agent with access to the same methods as a previous instance.
 
@@ -107,7 +109,7 @@ LLMs could be used to:
 
 Shade Agents have a Worker Agent that is running inside a trusted execution environment (TEE) and a NEAR Smart Contract deployed onchain. Here are the following steps that the Worker Agent takes to verify itself onchain, so that subsequent calls from the Worker Agent can be trusted.
 
-![image](https://github.com/user-attachments/assets/295d2f7d-cfa7-4eac-bd82-9cb56eb44964)
+<img width="1400" alt="2 (2)" src="https://github.com/user-attachments/assets/02bfcc61-776b-44da-8ce9-37908e7ccc98" />
 
 ## 1. Ephemeral key for a NEAR Account
 
@@ -275,6 +277,8 @@ pub fn protected_by_codehash_a(&mut self) {
 
 Where `CODEHASH_A` is a const in the Smart Contract.
 
+<img width="1400" alt="4" src="https://github.com/user-attachments/assets/62eeb31d-41c7-4193-952b-1ad972889b81" />
+
 ## Managing a List of Codehashes
 
 Using a const hardcoded in the contract can be a brittle approach. For this reason we can build in a list of approved codehashes that can be managed by devs or upgraded by a DAO process.
@@ -308,6 +312,8 @@ pub fn protected_by_approved_codehashes(&mut self) {
 
 ## Managing Different Workers for Different Methods
 
+<img width="1400" alt="5" src="https://github.com/user-attachments/assets/2d313b50-5259-44d2-b443-736d55705338" />
+
 In order to accomplish this we would simply extend the example above to maintain different lists of codehashes, grouped by the Worker Agents for our methods.
 
 Example:
@@ -317,7 +323,6 @@ pub struct Contract {
     ...
 	pub codehashes_a: IterableSet<String>,
 	pub codehashes_b: IterableSet<String>,
-	pub codehashes_c: IterableSet<String>,
 	...
 }
 
@@ -331,15 +336,14 @@ pub fn has_approved_codehash(&mut self, account_id: AccountId, group: &str) {
 	match group {
 		"a" => require!(self.codehashes_a.contains(&worker.codehash)),
 		"b" => require!(self.codehashes_b.contains(&worker.codehash)),
-		"c" => require!(self.codehashes_c.contains(&worker.codehash)),
 		_ => require!(false)
 	}
 	;
 }
 
 /// will throw on client if worker agent is not registered with a codehash in self.approved_codehashes
-pub fn protected_by_codehashes_c(&mut self) {
-	require!(self.has_approved_codehash(env::predecessor_account_id(), "c"));
+pub fn protected_by_codehashes_b(&mut self) {
+	require!(self.has_approved_codehash(env::predecessor_account_id(), "b"));
 	...
 	// amazing worker agent code
 }
