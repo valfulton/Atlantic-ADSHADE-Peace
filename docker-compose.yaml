@@ -1,10 +1,6 @@
 version: '4.0'
 services:
     web:
-        build:
-            context: .
-            dockerfile: Dockerfile
-            target: prod
         platform: linux/amd64 # Explicitly set for TDX
         image: mattdlockyer/based-agent-test:latest@sha256:67b7d2074ac0b6621035b9938f896ed2367707d8384e1e3baa4c0c4c39d05da7
         container_name: web
