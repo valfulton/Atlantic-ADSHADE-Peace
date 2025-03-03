@@ -1,7 +1,7 @@
 {
     "private": true,
     "scripts": {
-        "test:contract": "cd contract && cargo near build --no-docker && cd .. && ava ./tests/test.js --serial --timeout 30s",
+        "test:contract": "cd contract && cargo near build --no-doc && cd .. && ava ./tests/test.js --serial --timeout 30s",
         "dev": "next dev",
         "build": "next build",
         "tappd:run": "sudo docker run --rm -p 8090:8090 phalanetwork/tappd-simulator:latest",

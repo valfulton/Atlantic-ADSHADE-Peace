@@ -229,6 +229,16 @@ NEXT_PUBLIC_contractId=dcap.magical-part.testnet
 
 Your docker build of your NextJS app can target this contract by including the contractId in the Dockerfile.
 
+## KNOWN ISSUE: Contract Build on MacOS
+
+There is an issue with Apple's clang and compiling the `ring` crate.
+
+```
+'No available targets are compatible with triple "wasm32-unknown-unknown"'
+```
+
+If you are building the smart contract on Apple Silicon, see here to resolve: https://github.com/briansmith/ring/issues/1824#issuecomment-2059955073
+
 # Design Patterns for Method Access Control
 
 One of the biggest features of the Shade Agent Stack is method access control of the Smart Contract.
