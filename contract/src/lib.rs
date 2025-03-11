@@ -96,7 +96,7 @@ impl Contract {
         let now = block_timestamp() / 1000000000;
         let result = verify::verify(&quote, &collateral, now);
 
-        // log!("{:?}", result);
+        log!("{:?}", result);
 
         if result.ok().is_some() {
             let predecessor = env::predecessor_account_id();

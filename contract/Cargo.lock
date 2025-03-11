@@ -257,6 +257,7 @@ dependencies = [
  "near-sdk",
  "schemars",
  "serde_json",
+ "sha2",
 ]
 
 [[package]]
