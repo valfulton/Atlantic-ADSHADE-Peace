@@ -1,4 +1,4 @@
-import { deriveWorkerAccount } from '../../temp/index.cjs';
+import { deriveWorkerAccount } from '@neardefi/shade-agent-js';
 
 export const dynamic = 'force-dynamic';
 

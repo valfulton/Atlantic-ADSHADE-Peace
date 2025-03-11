@@ -1,4 +1,4 @@
-use hex::decode;
+use hex::{decode, encode};
 use near_sdk::{
     env::{self, block_timestamp},
     log, near, require,
@@ -6,7 +6,7 @@ use near_sdk::{
     AccountId, PanicOnDefault,
 };
 
-use dcap_qvl::verify;
+use dcap_qvl::{verify, QuoteCollateralV3};
 
 mod collateral;
 
@@ -86,25 +86,23 @@ impl Contract {
         quote_hex: String,
         collateral: String,
         checksum: String,
-        codehash: String,
+        tcb_info: String,
     ) -> bool {
-        // uncomment this line to only allow workers to register if their codehash arg is approved
-        // require!(self.approved_codehashes.contains(&codehash));
-
         let collateral = collateral::get_collateral(collateral);
         let quote = decode(quote_hex).unwrap();
         let now = block_timestamp() / 1000000000;
-        let result = verify::verify(&quote, &collateral, now);
+        let result = verify::verify(&quote, &collateral, now).expect("report is not verified");
+        let rtmr3 = encode(result.report.as_td10().unwrap().rt_mr3.to_vec());
+        let codehash = collateral::verify_codehash(tcb_info, rtmr3);
 
-        log!("{:?}", result);
+        // uncomment this line to only allow workers to register if their codehash arg is approved
+        // require!(self.approved_codehashes.contains(&codehash));
 
-        if result.ok().is_some() {
-            let predecessor = env::predecessor_account_id();
-            self.worker_by_account_id
-                .insert(predecessor, Worker { checksum, codehash });
-            return true;
-        }
-        false
+        let predecessor = env::predecessor_account_id();
+        self.worker_by_account_id
+            .insert(predecessor, Worker { checksum, codehash });
+
+        true
     }
 
     // views

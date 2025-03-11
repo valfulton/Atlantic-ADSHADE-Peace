@@ -1,6 +1,6 @@
 import { TappdClient } from '../../utils/tappd';
 import 'dotenv/config';
-import { contractCall } from '../../utils/near-provider';
+import { contractCall } from '@neardefi/shade-agent-js';
 
 export const dynamic = 'force-dynamic';
 
@@ -13,7 +13,9 @@ export default async function isVerified(req, res) {
     const { tcb_info } = await client.getInfo();
     const { app_compose } = JSON.parse(tcb_info);
     // first sha256: match of docker-compose.yaml will be codehash (arrange docker-compose.yaml accordingly)
-    const [codehash] = app_compose.match(/sha256:([a-f0-9]*)/gim);
+    let [codehash] = app_compose.match(/sha256:([a-f0-9]*)/gim);
+
+    codehash = codehash.replace('sha256:', '');
 
     let verified = false;
     try {

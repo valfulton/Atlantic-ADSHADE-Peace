@@ -1,7 +1,11 @@
 import Head from 'next/head';
 import styles from '../styles/Home.module.css';
 import { useState, useEffect } from 'react';
-import { contractView, getBalance, formatNearAmount } from '../temp/index.cjs';
+import {
+    contractView,
+    getBalance,
+    formatNearAmount,
+} from '@neardefi/shade-agent-js';
 import Overlay from '../components/Overlay';
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));

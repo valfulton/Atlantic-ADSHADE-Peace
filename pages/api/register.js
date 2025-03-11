@@ -1,4 +1,4 @@
-import { registerWorker } from '../../temp/index.cjs';
+import { registerWorker } from '@neardefi/shade-agent-js';
 
 export const dynamic = 'force-dynamic';
 

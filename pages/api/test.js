@@ -1,5 +1,4 @@
-import { SearchMode, twitter, generateAddress } from '../../temp/index.cjs';
-
+import { SearchMode, twitter, generateAddress } from '@neardefi/shade-agent-js';
 const replied = [];
 
 export default async function test(req, res) {
