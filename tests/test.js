@@ -14,7 +14,10 @@ import {
     getDevAccountKeyPair,
 } from '../utils/near-provider.js';
 
-import { quote_hex, collateral } from './sample.js';
+import { quote_hex, collateral, tcb_info } from './sample.js';
+
+const codehash =
+    '67b7d2074ac0b6621035b9938f896ed2367707d8384e1e3baa4c0c4c39d05da7';
 
 // tests
 
@@ -74,7 +77,7 @@ test('call register_worker with quote', async (t) => {
             quote_hex,
             collateral: JSON.stringify(collateral),
             checksum: 'foo',
-            codehash: 'bar',
+            tcb_info: JSON.stringify(tcb_info),
         },
     });
 
@@ -89,7 +92,7 @@ test('call is_worker_verified', async (t) => {
         contractId,
         methodName: 'is_verified_by_codehash',
         args: {
-            codehash: 'bar',
+            codehash,
         },
     });
 
@@ -103,7 +106,7 @@ test('should fail: call is_worker_verified', async (t) => {
             contractId,
             methodName: 'is_worker_verified',
             args: {
-                codehash: 'bar2',
+                codehash: 'foo',
             },
         });
     } catch (e) {
@@ -136,7 +139,7 @@ test('call approve_codehash', async (t) => {
         contractId,
         methodName: 'approve_codehash',
         args: {
-            codehash: 'bar',
+            codehash,
         },
     });
 
