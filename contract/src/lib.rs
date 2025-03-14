@@ -3,12 +3,15 @@ use near_sdk::{
     env::{self, block_timestamp},
     log, near, require,
     store::{IterableMap, IterableSet},
-    AccountId, PanicOnDefault,
+    AccountId, Gas, NearToken, PanicOnDefault, Promise,
 };
 
 use dcap_qvl::{verify, QuoteCollateralV3};
 
 mod collateral;
+mod ecdsa;
+mod external;
+mod utils;
 
 #[near(serializers = [json, borsh])]
 #[derive(Clone)]
@@ -70,13 +73,9 @@ impl Contract {
     }
 
     /// will throw on client if worker agent is not registered with a codehash in self.approved_codehashes
-    pub fn is_verified_by_approved_codehash(&mut self) {
+    pub fn require_approved_codehash(&mut self) {
         let worker = self.get_worker(env::predecessor_account_id());
-
         require!(self.approved_codehashes.contains(&worker.codehash));
-
-        // worker agent does something amazing here
-        log!("The agent abides.")
     }
 
     // register args see: https://github.com/mattlockyer/based-agent-template/blob/main/pages/api/register.js
@@ -103,6 +102,12 @@ impl Contract {
             .insert(predecessor, Worker { checksum, codehash });
 
         true
+    }
+
+    pub fn get_signature(&mut self, payload: Vec<u8>, path: String) -> Promise {
+        self.require_approved_codehash();
+
+        ecdsa::get_sig(payload, path, 0)
     }
 
     // views
