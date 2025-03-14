@@ -1,7 +1,7 @@
 import { ethers } from 'ethers';
 import BN from 'bn.js';
 import { fetchJson } from './utils';
-import { networkId, contractCall } from './near-provider';
+import { networkId, contractCall } from '@neardefi/shade-agent-js';
 
 // !!! Warning only the contract call method "call" is tested
 
