@@ -3091,6 +3091,11 @@ twitter-api-v2@^1.18.2:
   resolved "https://registry.yarnpkg.com/twitter-api-v2/-/twitter-api-v2-1.20.2.tgz#ca9b5ad6c2dda58753c5bfc7768ad94a46161173"
   integrity sha512-0Q+yJetijJon8rctNuy7kDfHK4/8rZw6ZRO0Ix7K7+tuk2eZN5j0loeBpEsijxO+dEW+YxGhq1V7FhjUJwAQJw==
 
+twitter-api-v2@^1.22.0:
+  version "1.22.0"
+  resolved "https://registry.yarnpkg.com/twitter-api-v2/-/twitter-api-v2-1.22.0.tgz#72dc04821d751c964daee1406619245e44e24ea3"
+  integrity sha512-KlcRL9vcBzjeS/PwxX33NziP+SHp9n35DOclKtpOmnNes7nNVnK7WG4pKlHfBqGrY5kAz/8J5ERS8DWkYOaiWw==
+
 type-fest@^0.13.1:
   version "0.13.1"
   resolved "https://registry.yarnpkg.com/type-fest/-/type-fest-0.13.1.tgz#0172cb5bce80b0bd542ea348db50c7e21834d934"

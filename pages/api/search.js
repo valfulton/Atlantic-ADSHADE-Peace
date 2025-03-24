@@ -6,6 +6,7 @@ import {
 } from '@neardefi/shade-agent-js';
 import { evm } from '../../utils/evm';
 import { fetchJson, sleep } from '../../utils/utils';
+import { TwitterApi } from 'twitter-api-v2';
 
 const MAX_POLL = 1; // 10 minutes to deposit
 let processingReplies = false;
@@ -13,6 +14,7 @@ const pendingReply = [];
 let processingDeposits = false;
 const pendingDeposit = [];
 let lastTweetTimestamp = 0;
+let waitingForReset = 0;
 
 const processDeposits = async () => {
     const tweet = pendingDeposit.shift();
@@ -95,6 +97,7 @@ const processReplies = async () => {
         tweet.price = 130000000000000n;
     }
     const formatedPrice = evm.formatBalance(tweet.price).substring(0, 7);
+    console.log('formatedPrice', formatedPrice);
 
     // let res;
     // try {
@@ -127,16 +130,46 @@ const processReplies = async () => {
 };
 
 export default async function search(req, res) {
-    // Search for recent tweets
-    const results = await twitter.searchTweets(
-        '@shadeagent007 .base.eth',
-        100,
-        SearchMode.Latest,
+    // rate limited?
+    if (waitingForReset !== 0 && Date.now() / 1000 < waitingForReset) {
+        return;
+    }
+    waitingForReset = 0;
+
+    // nope
+    const consumerClient = new TwitterApi({
+        appKey: process.env.TWITTER_API_KEY,
+        appSecret: process.env.TWITTER_API_SECRET,
+    });
+    // app-only client
+    const client = await consumerClient.appLogin();
+
+    // searcj
+    const tweetGenerator = await client.v2.search(
+        '@shadeagent007 ".base.eth"',
+        {
+            'tweet.fields': 'created_at', // Edit optional query parameters here
+        },
     );
 
-    const tweets = await Array.fromAsync(results);
+    console.log('REMAINING API CALLS', tweetGenerator._rateLimit.remaining);
+    console.log(
+        'RESET',
+        Number(
+            (tweetGenerator._rateLimit.reset - Date.now() / 1000) / 60,
+        ).toPrecision(4) + ' minutes',
+    );
+    if (tweetGenerator._rateLimit.remaining <= 0) {
+        waitingForReset = tweetGenerator._rateLimit.reset;
+    }
 
-    for (const tweet of tweets) {
+    let seen = 0;
+    const limit = 99;
+    for await (const tweet of tweetGenerator) {
+        if (++seen > limit) break;
+
+        tweet.timestamp = new Date(tweet.created_at).getTime() / 1000;
+
         // make sure tweet is not in pending state
         if (
             pendingReply.findIndex((t) => t.id === tweet.id) > -1 ||
@@ -149,11 +182,10 @@ export default async function search(req, res) {
         if (!tweet.basename) {
             continue;
         }
-
+        // make sure we haven't seen it before
         if (tweet.timestamp <= lastTweetTimestamp) {
             continue;
         }
-
         //qualifies
         lastTweetTimestamp = tweet.timestamp;
 
