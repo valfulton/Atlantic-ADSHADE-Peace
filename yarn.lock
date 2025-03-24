@@ -296,10 +296,10 @@
     "@near-js/utils" "1.1.0"
     borsh "1.0.0"
 
-"@neardefi/shade-agent-js@^0.0.6":
-  version "0.0.6"
-  resolved "https://registry.yarnpkg.com/@neardefi/shade-agent-js/-/shade-agent-js-0.0.6.tgz#0caae219b93d772e4d0137bd3287491d701c2380"
-  integrity sha512-c3X2vPuDDiDMx5rdyX2IAkhR/FngK3vZ2FW9ZtE1jgR8RBT7skfe92++SWSI96bnjDEKGPOpDIyO03RADuM4yA==
+"@neardefi/shade-agent-js@^0.0.10":
+  version "0.0.10"
+  resolved "https://registry.yarnpkg.com/@neardefi/shade-agent-js/-/shade-agent-js-0.0.10.tgz#2083247280227e1b620922822b6e3b9211c9eb8f"
+  integrity sha512-zVH+VDDlt3WSz23GPcPbZ9qLIvmdC4RyviYJ0gl2O/q8kfI0nE6Iv7jY8/cztcL3XWX+AlkwM6DHAuCXHQGxUQ==
 
 "@next/env@15.2.2":
   version "15.2.2"

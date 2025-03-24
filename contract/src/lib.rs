@@ -78,6 +78,16 @@ impl Contract {
         require!(self.approved_codehashes.contains(&worker.codehash));
     }
 
+    /// will throw on client if worker agent is not registered with a codehash in self.approved_codehashes
+    pub fn is_verified_by_approved_codehash(&mut self) {
+        let worker = self.get_worker(env::predecessor_account_id());
+
+        require!(self.approved_codehashes.contains(&worker.codehash));
+
+        // worker agent does something amazing here
+        log!("The agent abides.")
+    }
+
     // register args see: https://github.com/mattlockyer/based-agent-template/blob/main/pages/api/register.js
 
     pub fn register_worker(
@@ -105,7 +115,7 @@ impl Contract {
     }
 
     pub fn get_signature(&mut self, payload: Vec<u8>, path: String) -> Promise {
-        self.require_approved_codehash();
+        // self.require_approved_codehash();
 
         ecdsa::get_sig(payload, path, 0)
     }
@@ -115,7 +125,7 @@ impl Contract {
     pub fn get_worker(&self, account_id: AccountId) -> Worker {
         self.worker_by_account_id
             .get(&account_id)
-            .unwrap()
+            .expect("no worker found")
             .to_owned()
     }
 }
