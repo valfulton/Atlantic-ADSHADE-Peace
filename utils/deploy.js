@@ -76,7 +76,7 @@ const deploy = async () => {
 
     // NEEDS TO MATCH docker-compose.yaml CODEHASH
     const codehash =
-        '055c88f43b2c3ca73044dcbf956e08c17e79c323690be634ecaf45bf9c64b066';
+        'd4e7f2c6474482715454727c7177a9d007e4ab36174c7ad92b48371dafbd7cb2';
     account = getAccount(accountId);
     const approveRes = await account.functionCall({
         contractId,

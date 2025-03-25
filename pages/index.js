@@ -143,7 +143,7 @@ export default function Home() {
                                 href="#"
                                 className={styles.card}
                                 onClick={async () => {
-                                    setMessage('Calling get_worker');
+                                    setMessage('Calling get_worker', accountId);
 
                                     let res;
                                     try {

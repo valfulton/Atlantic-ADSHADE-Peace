@@ -183,7 +183,7 @@ export const evm = {
             // Create the RegisterRequest struct
             const registerRequest = {
                 name: basename,
-                owner: targetAddress,
+                owner: ethers.getAddress(targetAddress),
                 duration: registrationDuration,
                 resolver: L2_RESOLVER_ADDRESS[networkId] || ethers.ZeroAddress,
                 data: [],
