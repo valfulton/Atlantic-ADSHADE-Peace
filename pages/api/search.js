@@ -1,28 +1,129 @@
-import {
-    SearchMode,
-    twitter,
-    generateAddress,
-    networkId,
-} from '@neardefi/shade-agent-js';
+import { generateAddress, networkId } from '@neardefi/shade-agent-js';
 import { evm } from '../../utils/evm';
 import { fetchJson, sleep } from '../../utils/utils';
 import { TwitterApi } from 'twitter-api-v2';
 
-const MAX_POLL = 120; // 10 minutes to deposit
-let processingReplies = false;
+const DEPOSIT_PROCESSING_DELAY = 5000;
+const REPLY_PROCESSING_DELAY = 15000;
+const REFUND_PROCESSING_DELAY = 60000;
+const MAX_DEPOSIT_ATTEMPTS = 12 * 60; // 12 per minute * 60 mins
 const pendingReply = [];
-let processingDeposits = false;
 const pendingDeposit = [];
-let lastTweetTimestamp = 0;
+let lastTweetTimestamp = parseInt(process.env.TWITTER_LAST_TIMESTAMP);
 let waitingForReset = 0;
+const pendingRefund = [];
+const refunded = [];
+
+let accessToken = process.env.TWITTER_ACCESS_TOKEN;
+let refreshToken = process.env.TWITTER_REFRESH_TOKEN;
+
+let FAKE_REPLY = true;
+
+const sleepThen = async (dur, fn) => {
+    await sleep(dur);
+    fn();
+};
+
+const refreshAccessToken = async () => {
+    console.log('refreshAccessToken');
+    const client = new TwitterApi({
+        clientId: process.env.TWITTER_CLIENT_KEY,
+        clientSecret: process.env.TWITTER_CLIENT_SECRET,
+    });
+    try {
+        const { accessToken: newAccessToken, refreshToken: newRefreshToken } =
+            await client.refreshOAuth2Token(refreshToken);
+        accessToken = newAccessToken;
+        refreshToken = newRefreshToken;
+        console.log('success refreshAccessToken', accessToken);
+    } catch (e) {
+        console.log('error refreshAccessToken');
+        console.log(e);
+    }
+};
+
+const replyToTweet = async (text, id, secondAttempt = false) => {
+    console.log('replyToTweet');
+    const client = new TwitterApi(accessToken);
+    let res;
+    try {
+        console.log('client.v2.reply', id);
+        res = FAKE_REPLY ? { data: true } : await client.v2.reply(text, id);
+    } catch (e) {
+        console.log('error', e);
+        if (!secondAttempt && /401/gi.test(JSON.stringify(e))) {
+            await refreshAccessToken();
+            res = await replyToTweet(text, id, true);
+        }
+    }
+    console.log(res);
+    return res;
+};
+
+export const getRefunded = () => refunded;
+
+const processRefunds = async () => {
+    const tweet = pendingRefund.shift();
+    if (!tweet) {
+        await sleepThen(REFUND_PROCESSING_DELAY, processRefunds);
+        return;
+    }
+    console.log('refund tweet.id', tweet.id);
+
+    // whether successful or not, store this tweet in case we need to resolve manually
+    // need tweet.path to generate signature
+    refunded.push(tweet);
+
+    const { result } = await fetchJson(
+        `https://api${
+            networkId === 'testnet' ? '-sepolia' : ''
+        }.basescan.org/api?module=account&action=txlist&address=${
+            tweet.address
+        }&startblock=0&endblock=latest&page=1&offset=10&sort=asc&apikey=${
+            process.env.BASE_API_KEY
+        }`,
+    );
+    const tx = result[0];
+
+    if (tx && tx.from) {
+        const balance = await evm.getBalance({
+            address: tweet.address,
+        });
+        const feeData = await evm.getGasPrice();
+        const gasPrice =
+            BigInt(feeData.maxFeePerGas) + BigInt(feeData.maxPriorityFeePerGas);
+        const gasLimit = 21000n;
+        const gasFee = gasPrice * gasLimit;
+        const amount = evm.formatBalance(balance - gasFee);
+
+        try {
+            await evm.send({
+                path: tweet.path,
+                from: tweet.address,
+                to: tx.from,
+                amount,
+            });
+        } catch (e) {
+            console.log(e);
+        }
+    }
+
+    // check again
+    await sleepThen(REFUND_PROCESSING_DELAY, processRefunds);
+};
+processRefunds();
+
+// processing deposits and registering basenames
 
 const processDeposits = async () => {
     const tweet = pendingDeposit.shift();
-    if (!tweet || tweet.depositAttempt >= MAX_POLL) {
-        processingDeposits = false;
+    if (!tweet || tweet.depositAttempt >= MAX_DEPOSIT_ATTEMPTS) {
+        if (tweet) {
+            pendingRefund.push(tweet);
+        }
+        await sleepThen(DEPOSIT_PROCESSING_DELAY, processDeposits);
         return;
     }
-    processingDeposits = true;
     console.log('processing deposit', tweet.depositAttempt, tweet.address);
 
     const balance = await evm.getBalance({ address: tweet.address });
@@ -39,37 +140,50 @@ const processDeposits = async () => {
             }`,
         );
         const tx = result[0];
+        console.log('DEPOSIT tx.from', tx.from);
 
-        if (tx) {
-            await evm.getBasenameTx(
-                tweet.path,
-                tweet.basename,
-                tweet.address,
-                tx.from,
-            );
+        if (tx && tx.from) {
+            try {
+                await evm.getBasenameTx(
+                    tweet.path,
+                    tweet.basename,
+                    tweet.address,
+                    tx.from,
+                );
 
-            // await evm.send({
-            //     path: tweet.path,
-            //     from: tweet.address,
-            // });
+                await replyToTweet(
+                    `😎 I gotchu ${tweet.basename} and it's registered to ${tweet.address}`,
+                    tweet.id,
+                );
+            } catch (e) {
+                console.log(e);
+            }
 
+            // leftovers? whether successful or not
+            const balance = await evm.getBalance({ address: tweet.address });
+            if (balance > 0n) {
+                pendingRefund.push(tweet);
+            }
+
+            await sleepThen(DEPOSIT_PROCESSING_DELAY, processDeposits);
             return;
         }
     }
 
     tweet.depositAttempt++;
     pendingDeposit.push(tweet);
-    await sleep(15000);
-    processDeposits();
+    await sleepThen(DEPOSIT_PROCESSING_DELAY, processDeposits);
 };
+processDeposits();
+
+// processing the tweet reply
 
 const processReplies = async () => {
     const tweet = pendingReply.shift();
     if (!tweet || tweet.replyAttempt >= 3) {
-        processingReplies = false;
+        await sleepThen(REPLY_PROCESSING_DELAY, processReplies);
         return;
     }
-    processingReplies = true;
     console.log('processing reply', tweet.id);
 
     tweet.path = `${tweet.author_id}-${tweet.basename}`;
@@ -89,32 +203,20 @@ const processReplies = async () => {
 
     // bail on this name if it's not valid or available
     if (!basenameInfo.isValid) {
-        try {
-            const res = await twitter.sendTweet(
-                `😎 Sorry ${tweet.basename} is not a valid basename!`,
-                tweet.id,
-            );
-        } catch (e) {
-            console.log(e);
-        }
-
-        await sleep(15000);
-        processReplies();
+        await replyToTweet(
+            `😎 Sorry ${tweet.basename} is not a valid basename!`,
+            tweet.id,
+        );
+        await sleepThen(REPLY_PROCESSING_DELAY, processReplies);
         return;
     }
 
     if (!basenameInfo.isAvailable) {
-        try {
-            const res = await twitter.sendTweet(
-                `😎 Sorry ${tweet.basename} is not available!`,
-                tweet.id,
-            );
-        } catch (e) {
-            console.log(e);
-        }
-
-        await sleep(15000);
-        processReplies();
+        await replyToTweet(
+            `😎 Sorry ${tweet.basename} is not available!`,
+            tweet.id,
+        );
+        await sleepThen(REPLY_PROCESSING_DELAY, processReplies);
         return;
     }
 
@@ -127,35 +229,26 @@ const processReplies = async () => {
     const formatedPrice = evm.formatBalance(tweet.price).substring(0, 7);
     console.log('formatedPrice', formatedPrice);
 
-    let res;
-    try {
-        res = await twitter.sendTweet(
-            `😎 Send ${formatedPrice} ETH on base to: ${tweet.address} and I'll buy ${tweet.basename} for you! Send funds in the next 10 minutes or funds will be lost.`,
-            tweet.id,
-        );
-    } catch (e) {
-        console.log(e);
-    }
+    const res = await replyToTweet(
+        `😎 Time's ticking - send ${formatedPrice} to ${tweet.address} in next 10 min to secure your basename ${tweet.basename}. Late? You might miss out & risk losing the funds. Terms in Bio.`,
+        tweet.id,
+    );
 
     // move to pendingDeposit
-    if (res.ok) {
+    if (res?.data) {
         console.log('reply sent', tweet.id);
         // move to pendingDeposit
         tweet.depositAttempt = 0;
         pendingDeposit.push(tweet);
-        if (!processingDeposits) {
-            processDeposits();
-        }
-        return;
+    } else {
+        // retry reply
+        tweet.replyAttempt++;
+        pendingReply.push(tweet);
     }
 
-    // retry
-    tweet.replyAttempt++;
-    pendingReply.push(tweet);
-
-    await sleep(15000);
-    processReplies();
+    await sleepThen(REPLY_PROCESSING_DELAY, processReplies);
 };
+processReplies();
 
 export default async function search(req, res) {
     // rate limited?
@@ -172,8 +265,14 @@ export default async function search(req, res) {
     // app-only client
     const client = await consumerClient.appLogin();
 
-    // searcj
+    // search
+    const start_time =
+        lastTweetTimestamp > 0
+            ? new Date(lastTweetTimestamp * 1000 + 1000).toISOString()
+            : undefined;
+    console.log('search start_time', start_time);
     const tweetGenerator = await client.v2.search('@basednames ".base.eth"', {
+        start_time,
         'tweet.fields': 'author_id,created_at',
     });
 
@@ -194,6 +293,7 @@ export default async function search(req, res) {
     for await (const tweet of tweetGenerator) {
         if (++seen > limit) break;
 
+        console.log('reading tweet', tweet.id);
         tweet.timestamp = new Date(tweet.created_at).getTime() / 1000;
 
         // tweet not in pending state
@@ -217,6 +317,7 @@ export default async function search(req, res) {
             latestValidTimestamp = tweet.timestamp;
         }
         //qualifies
+        console.log('tweet qualified', tweet.id);
         tweet.replyAttempt = 0;
         pendingReply.push(tweet);
     }
@@ -225,11 +326,8 @@ export default async function search(req, res) {
         lastTweetTimestamp = latestValidTimestamp;
     }
 
+    console.log('lastTweetTimestamp', lastTweetTimestamp);
     console.log('pendingReply.length', pendingReply.length);
 
     res.status(200).json({ pendingReply: pendingReply.length });
-
-    if (!processingReplies) {
-        processReplies();
-    }
 }
