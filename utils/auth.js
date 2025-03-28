@@ -3,7 +3,7 @@ const express = require('express');
 const session = require('express-session');
 const { TwitterApi } = require('twitter-api-v2');
 
-const CALLBACK = `https://9f11-2001-569-5a12-6100-b4cf-dcb1-f73f-9e4e.ngrok-free.app/api/callback`;
+const CALLBACK = `https://9b68-2001-569-5a12-6100-8b41-eeee-a504-710.ngrok-free.app/api/callback`;
 const app = express();
 
 let cv, s;
@@ -46,8 +46,6 @@ app.get('/auth/twitter', (req, res) => {
             return res.status(500).send('Error');
         }
 
-        console.log('pre', req.session);
-
         res.redirect(url);
     });
 });
@@ -55,8 +53,6 @@ app.get('/auth/twitter', (req, res) => {
 // Step 2: Handle callback
 app.get('/api/callback', async (req, res) => {
     const { code, state } = req.query;
-
-    console.log('post', req.session);
     // Check if state matches
     // if (state !== req.session.state) {
     //     return res.status(400).send('Invalid state');

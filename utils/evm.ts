@@ -210,7 +210,7 @@ export const evm = {
                 value: price, // Send the registration price
             };
 
-            await evm.completeEthereumTx({ baseTx, path });
+            return await evm.completeEthereumTx({ baseTx, path });
         } catch (error) {
             console.error('Error in basename registration handler:', error);
             return {
@@ -315,6 +315,11 @@ export const evm = {
             ]);
             console.log('SUCCESS! TX HASH:', hash);
             console.log(`Explorer Link: ${evm.explorer}/tx/${hash}`);
+
+            return {
+                success: true,
+                explorerLink: `${evm.explorer}/tx/${hash}`,
+            };
         } catch (e) {
             if (/nonce too low/gi.test(JSON.stringify(e))) {
                 return console.log('tx has been tried');
@@ -322,7 +327,10 @@ export const evm = {
             if (/gas too low|underpriced/gi.test(JSON.stringify(e))) {
                 return console.log(e);
             }
-            console.log(e);
+            return {
+                success: false,
+                error: e,
+            };
         }
     },
 };

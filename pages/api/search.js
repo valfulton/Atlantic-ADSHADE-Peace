@@ -17,11 +17,31 @@ const refunded = [];
 let accessToken = process.env.TWITTER_ACCESS_TOKEN;
 let refreshToken = process.env.TWITTER_REFRESH_TOKEN;
 
-let FAKE_REPLY = true;
+// both false for production
+const FAKE_REPLY = false;
+const SEARCH_ONLY = false;
 
 const sleepThen = async (dur, fn) => {
     await sleep(dur);
     fn();
+};
+
+const getTransactionsForAddress = async (address) => {
+    const res = await fetchJson(
+        `https://api${
+            networkId === 'testnet' ? '-sepolia' : ''
+        }.basescan.org/api?module=account&action=txlist&address=${address}&startblock=0&endblock=latest&page=1&offset=10&sort=asc&apikey=${
+            process.env.BASE_API_KEY
+        }`,
+    );
+    if (!res.result || !res.result.length > 0) {
+        return;
+    }
+    const tx = res.result[0];
+    if (!tx.from) {
+        return;
+    }
+    return tx;
 };
 
 const refreshAccessToken = async () => {
@@ -74,18 +94,9 @@ const processRefunds = async () => {
     // need tweet.path to generate signature
     refunded.push(tweet);
 
-    const { result } = await fetchJson(
-        `https://api${
-            networkId === 'testnet' ? '-sepolia' : ''
-        }.basescan.org/api?module=account&action=txlist&address=${
-            tweet.address
-        }&startblock=0&endblock=latest&page=1&offset=10&sort=asc&apikey=${
-            process.env.BASE_API_KEY
-        }`,
-    );
-    const tx = result[0];
+    const tx = await getTransactionsForAddress(tweet.address);
 
-    if (tx && tx.from) {
+    if (tx) {
         const balance = await evm.getBalance({
             address: tweet.address,
         });
@@ -130,31 +141,23 @@ const processDeposits = async () => {
     console.log('balance', evm.formatBalance(balance));
 
     if (balance >= tweet.price) {
-        const { result } = await fetchJson(
-            `https://api${
-                networkId === 'testnet' ? '-sepolia' : ''
-            }.basescan.org/api?module=account&action=txlist&address=${
-                tweet.address
-            }&startblock=0&endblock=latest&page=1&offset=10&sort=asc&apikey=${
-                process.env.BASE_API_KEY
-            }`,
-        );
-        const tx = result[0];
-        console.log('DEPOSIT tx.from', tx.from);
+        const tx = await getTransactionsForAddress(tweet.address);
 
-        if (tx && tx.from) {
+        if (tx) {
             try {
-                await evm.getBasenameTx(
+                const nameRes = await evm.getBasenameTx(
                     tweet.path,
                     tweet.basename,
                     tweet.address,
                     tx.from,
                 );
 
-                await replyToTweet(
-                    `😎 I gotchu ${tweet.basename} and it's registered to ${tweet.address}`,
-                    tweet.id,
-                );
+                if (nameRes?.success && nameRes?.explorerLink) {
+                    await replyToTweet(
+                        `Done! 😎\n\nRegistered ${tweet.basename} to ${tx.from}\n\ntx: ${nameRes.explorerLink}`,
+                        tweet.id,
+                    );
+                }
             } catch (e) {
                 console.log(e);
             }
@@ -204,7 +207,7 @@ const processReplies = async () => {
     // bail on this name if it's not valid or available
     if (!basenameInfo.isValid) {
         await replyToTweet(
-            `😎 Sorry ${tweet.basename} is not a valid basename!`,
+            `Sorry! 😬\n\n${tweet.basename} is not a valid basename!`,
             tweet.id,
         );
         await sleepThen(REPLY_PROCESSING_DELAY, processReplies);
@@ -213,7 +216,7 @@ const processReplies = async () => {
 
     if (!basenameInfo.isAvailable) {
         await replyToTweet(
-            `😎 Sorry ${tweet.basename} is not available!`,
+            `Sorry! 😬\n\n${tweet.basename} is not available!`,
             tweet.id,
         );
         await sleepThen(REPLY_PROCESSING_DELAY, processReplies);
@@ -230,7 +233,7 @@ const processReplies = async () => {
     console.log('formatedPrice', formatedPrice);
 
     const res = await replyToTweet(
-        `😎 Time's ticking - send ${formatedPrice} to ${tweet.address} in next 10 min to secure your basename ${tweet.basename}. Late? You might miss out & risk losing the funds. Terms in Bio.`,
+        `On it! 😎\n\nSend ${formatedPrice} on Base to ${tweet.address} in next 10 mins to secure ${tweet.basename}\n\nLate? You might miss out & risk losing funds\n\nTerms in Bio.`,
         tweet.id,
     );
 
@@ -273,7 +276,7 @@ export default async function search(req, res) {
     console.log('search start_time', start_time);
     const tweetGenerator = await client.v2.search('@basednames ".base.eth"', {
         start_time,
-        'tweet.fields': 'author_id,created_at',
+        'tweet.fields': 'author_id,created_at,referenced_tweets',
     });
 
     console.log('REMAINING API CALLS', tweetGenerator._rateLimit.remaining);
@@ -294,6 +297,7 @@ export default async function search(req, res) {
         if (++seen > limit) break;
 
         console.log('reading tweet', tweet.id);
+
         tweet.timestamp = new Date(tweet.created_at).getTime() / 1000;
 
         // tweet not in pending state
@@ -316,10 +320,20 @@ export default async function search(req, res) {
         if (latestValidTimestamp === 0) {
             latestValidTimestamp = tweet.timestamp;
         }
+
+        // tweet is reply, quote, or RT
+        if (tweet.referenced_tweets?.length > 0) {
+            continue;
+        }
+
         //qualifies
         console.log('tweet qualified', tweet.id);
         tweet.replyAttempt = 0;
-        pendingReply.push(tweet);
+        if (!SEARCH_ONLY) {
+            pendingReply.push(tweet);
+        } else {
+            console.log(tweet);
+        }
     }
     // we won't see these valid tweets in the next API call
     if (latestValidTimestamp > 0) {
