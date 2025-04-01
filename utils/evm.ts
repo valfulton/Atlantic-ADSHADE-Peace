@@ -34,6 +34,7 @@ tuple(
 
 const L2_RESOLVER_ABI = [
     'function setAddr(bytes32 node, address addr) external',
+    'function setText(bytes32 node, string calldata key, string calldata value) external',
     'function setName(bytes32 node, string calldata name) external',
 ];
 
@@ -180,14 +181,36 @@ export const evm = {
 
             console.log('Chain ID:', chainId);
 
+            // Calculate the namehash for {basename}.base.eth
+            const namehash = ethers.namehash(`${basename}.base.eth`);
+
+            // Prepare the data array for the registration
+            const dataStruct = [
+                // Create setAddr call to set the address record (ETH Address)
+                resolverInterface.encodeFunctionData('setAddr', [
+                    namehash,
+                    targetAddress,
+                ]),
+            ];
+
+            // This will allow for reverse resolution (address → name)
+            const reverseName = `${basename}.base.eth`;
+            dataStruct.push(
+                resolverInterface.encodeFunctionData('setText', [
+                    namehash,
+                    'url',
+                    `https://${basename}.base.eth`,
+                ]),
+            );
+
             // Create the RegisterRequest struct
             const registerRequest = {
                 name: basename,
                 owner: ethers.getAddress(targetAddress),
                 duration: registrationDuration,
                 resolver: L2_RESOLVER_ADDRESS[networkId] || ethers.ZeroAddress,
-                data: [],
-                reverseRecord: false,
+                data: dataStruct,
+                reverseRecord: true,
             };
 
             // Encode the register function call

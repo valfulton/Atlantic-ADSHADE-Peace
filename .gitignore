@@ -41,3 +41,6 @@ next-env.d.ts
 
 # contract
 contract/target
+
+refunds.csv
+utils/log.js

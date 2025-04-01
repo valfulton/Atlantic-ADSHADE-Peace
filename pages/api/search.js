@@ -27,19 +27,24 @@ const sleepThen = async (dur, fn) => {
 };
 
 const getTransactionsForAddress = async (address) => {
-    const res = await fetchJson(
-        `https://api${
-            networkId === 'testnet' ? '-sepolia' : ''
-        }.basescan.org/api?module=account&action=txlist&address=${address}&startblock=0&endblock=latest&page=1&offset=10&sort=asc&apikey=${
-            process.env.BASE_API_KEY
-        }`,
-    );
-    if (!res.result || !res.result.length > 0) {
-        return;
-    }
-    const tx = res.result[0];
-    if (!tx.from) {
-        return;
+    let tx;
+    try {
+        const res = await fetchJson(
+            `https://api${
+                networkId === 'testnet' ? '-sepolia' : ''
+            }.basescan.org/api?module=account&action=txlist&address=${address}&startblock=0&endblock=latest&page=1&offset=10&sort=asc&apikey=${
+                process.env.BASE_API_KEY
+            }`,
+        );
+        if (!res.result || !res.result.length > 0) {
+            return;
+        }
+        tx = res.result[0];
+        if (!tx.from) {
+            return;
+        }
+    } catch (e) {
+        console.log(e);
     }
     return tx;
 };
@@ -97,17 +102,18 @@ const processRefunds = async () => {
     const tx = await getTransactionsForAddress(tweet.address);
 
     if (tx) {
-        const balance = await evm.getBalance({
-            address: tweet.address,
-        });
-        const feeData = await evm.getGasPrice();
-        const gasPrice =
-            BigInt(feeData.maxFeePerGas) + BigInt(feeData.maxPriorityFeePerGas);
-        const gasLimit = 21000n;
-        const gasFee = gasPrice * gasLimit;
-        const amount = evm.formatBalance(balance - gasFee);
-
         try {
+            const balance = await evm.getBalance({
+                address: tweet.address,
+            });
+            const feeData = await evm.getGasPrice();
+            const gasPrice =
+                BigInt(feeData.maxFeePerGas) +
+                BigInt(feeData.maxPriorityFeePerGas);
+            const gasLimit = 21000n;
+            const gasFee = gasPrice * gasLimit;
+            const amount = evm.formatBalance(balance - gasFee);
+
             await evm.send({
                 path: tweet.path,
                 from: tweet.address,
@@ -137,10 +143,15 @@ const processDeposits = async () => {
     }
     console.log('processing deposit', tweet.depositAttempt, tweet.address);
 
-    const balance = await evm.getBalance({ address: tweet.address });
-    console.log('balance', evm.formatBalance(balance));
+    let balance;
+    try {
+        balance = await evm.getBalance({ address: tweet.address });
+        console.log('balance', evm.formatBalance(balance));
+    } catch (e) {
+        console.log(e);
+    }
 
-    if (balance >= tweet.price) {
+    if (balance && balance >= tweet.price) {
         const tx = await getTransactionsForAddress(tweet.address);
 
         if (tx) {
@@ -154,7 +165,7 @@ const processDeposits = async () => {
 
                 if (nameRes?.success && nameRes?.explorerLink) {
                     await replyToTweet(
-                        `Done! 😎\n\nRegistered ${tweet.basename} to ${tx.from}\n\ntx: ${nameRes.explorerLink}`,
+                        `Done! 😎\n\nRegistered ${tweet.basename}.base.eth to ${tx.from}\n\ntx: ${nameRes.explorerLink}`,
                         tweet.id,
                     );
                 }
@@ -162,10 +173,16 @@ const processDeposits = async () => {
                 console.log(e);
             }
 
-            // leftovers? whether successful or not
-            const balance = await evm.getBalance({ address: tweet.address });
-            if (balance > 0n) {
-                pendingRefund.push(tweet);
+            try {
+                // leftovers? whether successful or not
+                const balance = await evm.getBalance({
+                    address: tweet.address,
+                });
+                if (balance > 0n) {
+                    pendingRefund.push(tweet);
+                }
+            } catch (e) {
+                console.log(e);
             }
 
             await sleepThen(DEPOSIT_PROCESSING_DELAY, processDeposits);
@@ -223,17 +240,18 @@ const processReplies = async () => {
         return;
     }
 
-    // name isValid and isAvailable
-    tweet.price = basenameInfo.price + 32000000000000n; // + 0.000032 ETH to pay for gas
-    // shouldn't exceed 0.00013 ETH
-    if (tweet.price > 130000000000000n) {
-        tweet.price = 130000000000000n;
-    }
+    // // name isValid and isAvailable
+    // tweet.price = basenameInfo.price + 32000000000000n; // + 0.000032 ETH to pay for gas
+    // // shouldn't exceed 0.00013 ETH
+    // if (tweet.price > 130000000000000n) {
+    //     tweet.price = 130000000000000n;
+    // }
+    tweet.price = 1100000000000000n;
     const formatedPrice = evm.formatBalance(tweet.price).substring(0, 7);
     console.log('formatedPrice', formatedPrice);
 
     const res = await replyToTweet(
-        `On it! 😎\n\nSend ${formatedPrice} on Base to ${tweet.address} in next 10 mins to secure ${tweet.basename}\n\nLate? You might miss out & risk losing funds\n\nTerms in Bio.`,
+        `On it! 😎\n\nSend ${formatedPrice} ETH on Base to ${tweet.address} in next 10 mins to secure ${tweet.basename}\n\nLate? You might miss out & risk losing funds\n\nTerms in Bio.`,
         tweet.id,
     );
 
@@ -254,6 +272,25 @@ const processReplies = async () => {
 processReplies();
 
 export default async function search(req, res) {
+    try {
+        const url = new URL('https://example.com' + req?.url);
+        const restart = url.searchParams.get('restart');
+        const pass = url.searchParams.get('pass');
+        if (pass === process.env.RESTART_PASS) {
+            if (restart === 'replies') {
+                processReplies();
+            }
+            if (restart === 'deposits') {
+                processDeposits();
+            }
+            if (restart === 'refunds') {
+                processRefunds();
+            }
+        }
+    } catch (e) {
+        console.log(e);
+    }
+
     // rate limited?
     if (waitingForReset !== 0 && Date.now() / 1000 < waitingForReset) {
         return;
@@ -307,9 +344,13 @@ export default async function search(req, res) {
         ) {
             continue;
         }
-        // validate tweet contents
+        // validate basename
         tweet.basename = tweet.text.match(/[a-zA-Z0-9]{3,}.base.eth/gim)?.[0];
         if (!tweet.basename) {
+            continue;
+        }
+        tweet.basename = tweet.basename.split('.base.eth')[0].toLowerCase();
+        if (tweet.basename.length < 3) {
             continue;
         }
         // make sure we haven't seen it before

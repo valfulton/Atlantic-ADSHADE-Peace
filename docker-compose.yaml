@@ -12,8 +12,9 @@ services:
             NEXT_PUBLIC_contractId: ${NEXT_PUBLIC_contractId}
             MPC_PUBLIC_KEY_TESTNET: ${MPC_PUBLIC_KEY_TESTNET}
             MPC_PUBLIC_KEY_MAINNET: ${MPC_PUBLIC_KEY_MAINNET}
+            RESTART_PASS: ${RESTART_PASS}
         platform: linux/amd64 # Explicitly set for TDX
-        image: mattdlockyer/shade-agent-basednames:latest@sha256:7c5886240b75ca9f0f95b77173d4bc8850f6de68e0d87b200cc04e3719eba19c
+        image: mattdlockyer/shade-agent-basednames:latest@sha256:de61b6f844c12cd06fe84a0a467d50c2818c94ffa348e500b82dddeb400161c4
         container_name: web
         ports:
             - '3000:3000'
