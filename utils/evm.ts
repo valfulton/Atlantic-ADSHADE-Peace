@@ -46,6 +46,8 @@ const getProvider = () => {
     );
 };
 
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
 export const evm = {
     name: 'Base',
     chainId: networkId === 'testnet' ? 84532 : 8453,
@@ -252,12 +254,12 @@ export const evm = {
         from: address,
         to = '0x525521d79134822a342d330bd91DA67976569aF1',
         amount = '0.000001',
+        gasLimit = 21000n,
     }) => {
         if (!address) return console.log('must provide a sending address');
 
         const {
             getGasPrice,
-            gasLimit,
             chainId,
             getBalance,
             completeEthereumTx,
@@ -289,7 +291,7 @@ export const evm = {
             chainId,
         };
 
-        await completeEthereumTx({ baseTx, path });
+        return await completeEthereumTx({ baseTx, path });
     },
 
     completeEthereumTx: async ({ baseTx, path }) => {
@@ -330,7 +332,12 @@ export const evm = {
         );
         tx.signature = signature;
         const serializedTx = tx.serialized;
-        console.log('serializedTx', serializedTx);
+
+        return await evm.broadcastTransaction(serializedTx);
+    },
+
+    broadcastTransaction: async (serializedTx, second = false) => {
+        console.log('BROADCAST serializedTx', serializedTx);
 
         try {
             const hash = await getProvider().send('eth_sendRawTransaction', [
@@ -349,6 +356,12 @@ export const evm = {
             }
             if (/gas too low|underpriced/gi.test(JSON.stringify(e))) {
                 return console.log(e);
+            }
+            console.log(e);
+            if (!second) {
+                console.log('RETRY BROADCAST');
+                await sleep(15000);
+                return await evm.broadcastTransaction(serializedTx, true);
             }
             return {
                 success: false,

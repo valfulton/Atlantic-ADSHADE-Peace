@@ -28,7 +28,7 @@ export const getAccount = (id) => new Account(connection, id);
 const removeKey = async () => {
     try {
         const account = getAccount(contractId);
-        if (contractId !== 'v0.shadeagent.near') {
+        if (contractId !== 'v1.shadeagent.near') {
             return;
         }
 

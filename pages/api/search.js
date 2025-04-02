@@ -26,13 +26,13 @@ const sleepThen = async (dur, fn) => {
     fn();
 };
 
-const getTransactionsForAddress = async (address) => {
+const getTransactionsForAddress = async (address, action = 'txlist') => {
     let tx;
     try {
         const res = await fetchJson(
             `https://api${
                 networkId === 'testnet' ? '-sepolia' : ''
-            }.basescan.org/api?module=account&action=txlist&address=${address}&startblock=0&endblock=latest&page=1&offset=10&sort=asc&apikey=${
+            }.basescan.org/api?module=account&action=${action}&address=${address}&startblock=0&endblock=latest&page=1&offset=10&sort=asc&apikey=${
                 process.env.BASE_API_KEY
             }`,
         );
@@ -40,7 +40,7 @@ const getTransactionsForAddress = async (address) => {
             return;
         }
         tx = res.result[0];
-        if (!tx.from) {
+        if (tx?.isError === '1' || !tx?.from) {
             return;
         }
     } catch (e) {
@@ -99,7 +99,12 @@ const processRefunds = async () => {
     // need tweet.path to generate signature
     refunded.push(tweet);
 
-    const tx = await getTransactionsForAddress(tweet.address);
+    let internal = false;
+    let tx = await getTransactionsForAddress(tweet.address);
+    if (!tx) {
+        tx = await getTransactionsForAddress(tweet.address, 'txlistinternal');
+        internal = true;
+    }
 
     if (tx) {
         try {
@@ -110,15 +115,17 @@ const processRefunds = async () => {
             const gasPrice =
                 BigInt(feeData.maxFeePerGas) +
                 BigInt(feeData.maxPriorityFeePerGas);
-            const gasLimit = 21000n;
+            const gasLimit = internal ? 500000n : 21000n;
             const gasFee = gasPrice * gasLimit;
-            const amount = evm.formatBalance(balance - gasFee);
+            const adjust = 5000000000000n;
+            const amount = evm.formatBalance(balance - gasFee - adjust);
 
             await evm.send({
                 path: tweet.path,
                 from: tweet.address,
                 to: tx.from,
                 amount,
+                gasLimit,
             });
         } catch (e) {
             console.log(e);
@@ -151,6 +158,7 @@ const processDeposits = async () => {
         console.log(e);
     }
 
+    // correct deposit amount, stop checking
     if (balance && balance >= tweet.price) {
         const tx = await getTransactionsForAddress(tweet.address);
 
@@ -184,6 +192,18 @@ const processDeposits = async () => {
             } catch (e) {
                 console.log(e);
             }
+
+            await sleepThen(DEPOSIT_PROCESSING_DELAY, processDeposits);
+            return;
+        }
+
+        // check internal transactions
+        const txInternal = await getTransactionsForAddress(
+            tweet.address,
+            'txlistinternal',
+        );
+        if (txInternal) {
+            pendingRefund.push(tweet);
 
             await sleepThen(DEPOSIT_PROCESSING_DELAY, processDeposits);
             return;
@@ -222,7 +242,7 @@ const processReplies = async () => {
     const basenameInfo = await evm.checkBasename(tweet.basename);
 
     // bail on this name if it's not valid or available
-    if (!basenameInfo.isValid) {
+    if (!basenameInfo.isValid || tweet.basename.length < 3) {
         await replyToTweet(
             `Sorry! 😬\n\n${tweet.basename} is not a valid basename!`,
             tweet.id,
@@ -240,13 +260,17 @@ const processReplies = async () => {
         return;
     }
 
-    // // name isValid and isAvailable
-    // tweet.price = basenameInfo.price + 32000000000000n; // + 0.000032 ETH to pay for gas
-    // // shouldn't exceed 0.00013 ETH
-    // if (tweet.price > 130000000000000n) {
-    //     tweet.price = 130000000000000n;
-    // }
+    // 1100000000000000n 5+ char
+    // 11000000000000000n 4 char
+    // 110000000000000000n 3 char
+
     tweet.price = 1100000000000000n;
+    if (tweet.basename.length === 4) {
+        tweet.price = 11000000000000000n;
+    }
+    if (tweet.basename.length === 3) {
+        tweet.price = 110000000000000000n;
+    }
     const formatedPrice = evm.formatBalance(tweet.price).substring(0, 7);
     console.log('formatedPrice', formatedPrice);
 
@@ -275,6 +299,7 @@ export default async function search(req, res) {
     try {
         const url = new URL('https://example.com' + req?.url);
         const restart = url.searchParams.get('restart');
+        const refund = url.searchParams.get('refund');
         const pass = url.searchParams.get('pass');
         if (pass === process.env.RESTART_PASS) {
             if (restart === 'replies') {
@@ -285,6 +310,15 @@ export default async function search(req, res) {
             }
             if (restart === 'refunds') {
                 processRefunds();
+            }
+            if (refund) {
+                const args = refund.split(',');
+
+                pendingRefund.push({
+                    id: 'FORCED REFUND TRY',
+                    address: args[0],
+                    path: args[1],
+                });
             }
         }
     } catch (e) {
@@ -349,10 +383,7 @@ export default async function search(req, res) {
         if (!tweet.basename) {
             continue;
         }
-        tweet.basename = tweet.basename.split('.base.eth')[0].toLowerCase();
-        if (tweet.basename.length < 3) {
-            continue;
-        }
+        tweet.basename = tweet.basename.toLowerCase().split('.base.eth')[0];
         // make sure we haven't seen it before
         if (tweet.timestamp <= lastTweetTimestamp) {
             continue;
