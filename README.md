@@ -1,6 +1,132 @@
-# Shade Agents
+# Basednames Bot
+
+This bot is based on the shade agent template (details below). It is a non-custodial worker agent running in a TEE with a fully verifiable codebase, that uses NEAR's chain signatures to purchase names for user's on Base (Coinbase chain).
+
+## How it Works
+
+1. User posts "Hey @basednames buy [DESIRED_NAME].base.eth for me!"
+1. Bot responds "On it! Send [PRICE] ETH on Base to [ONE_TIME_EVM_ADDRESS] ..."
+1. User sends funds, using @bankrbot on X or sends with wallet
+1. Bot checks deposit address and uses funds to buy [DESIRED_NAME].base.eth setting the target address to the sender
+1. Bot refunds any extra ETH
+1. Bot replies "Done! ... tx explorer link"
+
+## X (Twitter) Libraries (for NodeJS)
+
+Many bots use [Eliza OS Agent Twitter Client](https://github.com/elizaOS/agent-twitter-client) for their bots.
+
+This repo uses [Twitter API V2](https://github.com/plhery/node-twitter-api-v2#readme) for the bot and a paid plan for the API Account.
+
+### Cookie Auth, Development
+
+Using Eliza OS Agent Twitter Client, you can authenticate with cookies from the browser by copying and pasting them over to your environment variables.
+
+A Shade Agent using this library with an explanation how to set this up can be found [here](https://github.com/NearDeFi/shade-agent-twitter).
+
+Cookie authentication is fine for very low traffic, low risk bots, for example giving away airdrops, marketing or simply doing something fun.
+
+However, when the stakes are a bit higher, such as providing a service, the risk of these bots getting rate limited is much higher than using the official API.
+
+### API Auth
+
+Using Eliza OS Agent Twitter Client, you can also authenticate as a user with your API keys, if using the paid plan.
+
+This agent uses the official X API and a different library but the lessons are the same.
+
+## Best Practices Searching and Tweeting
+
+Whether you're using the agent-twitter-client or twitter-api-v2 the same principles apply.
+
+It is important how your code will search, and tweet. Understanding your rate limits is essential to creating a good bot for X.
+
+### Recommendation: Store Last Seen Posts
+
+When using APIs like X, you'll be doing a search of all relevent posts matching your criteria, but you'll also need to load each tweet (read request). It's not well documented that each tweet read also counts towards a rate limit.
+
+To avoid reading posts you've already seen before, store a `lastSeenTweet` timestamp and after you've parsed all the potential qualifying posts for your bot, separating out the valid posts where you need to take some action from the invalid posts that don't match criteria, you're going to want to add as a search parameter in your next call to the API the `start_time`.
+
+An example using Twitter Client V2:
+
+```js
+const tweetGenerator = await client.v2.search('@basednames ".base.eth"', {
+    start_time,
+    'tweet.fields': 'author_id,created_at,referenced_tweets',
+});
+```
+
+In general, don't request anything you've already seen before.
+
+### Recommendation: Check Rate Limits
+
+Checking the rate limit information returned to you from the API is prudent in a situation where you may be limited in the future.
+
+Make sure you check these limits and what time your API service will return.
+
+It's important to halt critical code and make sure you're not attempting to reply to messages while rate limited.
+
+One nice thing about the X API is that rate limits are dependent on the service.
+
+For example, search has nothing to do with posting tweets.
+
+### Recommendation: Use a Database as a Backup
+
+While this worker agent does not, it would be prudent for a more serious production application to use a database.
+
+Once you find the posts you want to respond to, store these in a database and add flags such as `responded`, `awaiting_reply`, etc...
+
+Additionally, store operating variables like `lastSeenTweet` from the recommendation above in an app field or table.
+
+In this way, if you have to reboot the worker agent, you'll be able to pick up where you last left off.
+
+### Recommendation: Timeout vs. Intervals
+
+All [rate limits on X](https://docs.x.com/x-api/fundamentals/rate-limits) are measured in time increments, e.g. search for basic API plan is 60 searches in a 15 minute window.
+
+Using an interval in JavaScript can be convenient but has some downsides. Intervals are based on "wall clock" time and don't take into account the time your code spends in an "await" for a response from an API. What will happen is that intervals will start to "bunch up" and your API calls will get closer and closer to each other, leading to unpredictable results.
+
+Consider this code:
+
+```js
+async function doSomething() {
+	await apiCall1();
+	...
+	await apiCall2();
+}
+setInterval(doSomething, 1000)
+```
+
+We're calling `doSomething` every second, but `apiCall1` could take several milliseconds or seconds to respond and `apiCall2` has not yet fired. Additionally, there is retry logic in Eliza OS Agent Twitter Client that will keep calling the API.
+
+But the interval is still going, every second, no matter what happens inside the function.
+
+#### Use Timeouts
+
+```js
+async function doSomething() {
+	await apiCall1();
+	...
+	await apiCall2();
+	...
+	setTimeout(doSomething, 1000)
+}
+doSomething()
+```
+
+Rewritten, our code now waits for all api calls to complete before moving on to the next iteration of our function call.
+
+Given the heavy rate limiting of X, using either cookie auth or official API accounts, this method is much more preferable to ensure that the calls to the API will no exceed a certain amount of "wall clock" time, in which API usage is measured.
+
+### Recommendation: Exception Handling
+
+Exceptions will happen and uncaught exceptions can cause your bot to exit out of a function early and potentially disrupt other functions.
+
+It's important that code calling APIs and using libraries be wrapped in a `try { ... } catch (error) { ... } finally { ... }`.
+
+If you take the recommended route of using timeouts, these timeouts must be called after all `await` and code in the block executes, in order to resume the next iteration without disruption.
 
 ## Shade Agent Template
+
+[Repo](https://github.com/NearDeFi/shade-agent-template/)
 
 This is a monorepo template for the Shade Agent Stack with all the code and tools for deploying a Shade Agent on NEAR and Phala Cloud.
 

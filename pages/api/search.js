@@ -296,6 +296,9 @@ const processReplies = async () => {
 processReplies();
 
 export default async function search(req, res) {
+    // owner only
+    // jump start the queues that process everything
+    // manually add a refund attempt for an address
     try {
         const url = new URL('https://example.com' + req?.url);
         const restart = url.searchParams.get('restart');
@@ -350,6 +353,7 @@ export default async function search(req, res) {
         'tweet.fields': 'author_id,created_at,referenced_tweets',
     });
 
+    // check rate limits
     console.log('REMAINING API CALLS', tweetGenerator._rateLimit.remaining);
     console.log(
         'RESET',
@@ -367,11 +371,11 @@ export default async function search(req, res) {
     for await (const tweet of tweetGenerator) {
         if (++seen > limit) break;
 
+        // get unix timestamp in seconds
         console.log('reading tweet', tweet.id);
-
         tweet.timestamp = new Date(tweet.created_at).getTime() / 1000;
 
-        // tweet not in pending state
+        // tweet not already in a pending state
         if (
             pendingReply.findIndex((t) => t.id === tweet.id) > -1 ||
             pendingDeposit.findIndex((t) => t.id === tweet.id) > -1
