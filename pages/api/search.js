@@ -2,6 +2,10 @@ import { generateAddress, networkId } from '@neardefi/shade-agent-js';
 import { evm } from '../../utils/evm';
 import { fetchJson, sleep } from '../../utils/utils';
 import { TwitterApi } from 'twitter-api-v2';
+import {
+    getConversationId,
+    getLatestConversationTweet,
+} from '../../utils/twitter-client';
 
 const DEPOSIT_PROCESSING_DELAY = 5000;
 const REPLY_PROCESSING_DELAY = 15000;
@@ -20,6 +24,9 @@ let refreshToken = process.env.TWITTER_REFRESH_TOKEN;
 // both false for production
 const FAKE_REPLY = false;
 const SEARCH_ONLY = false;
+
+// client must be initialized by first calling search http route
+let client = null;
 
 const sleepThen = async (dur, fn) => {
     await sleep(dur);
@@ -172,9 +179,27 @@ const processDeposits = async () => {
                 );
 
                 if (nameRes?.success && nameRes?.explorerLink) {
+                    // try to get the latest tweet in the conversation
+                    const conversationId = await getConversationId(
+                        client,
+                        tweet.id,
+                    );
+                    let latestTweet;
+                    if (conversationId !== null) {
+                        lastestTweet = await getLatestConversationTweet(
+                            client,
+                            conversationId,
+                        );
+                    }
+                    // if there's any issues, fallback to using the original tweet id
+                    let replyId = tweet.id;
+                    if (latestTweet && latestTweet !== null) {
+                        replyId = latestTweet.id;
+                    }
+                    // reply to tweet regardless
                     await replyToTweet(
                         `Done! 😎\n\nRegistered ${tweet.basename}.base.eth to ${tx.from}\n\ntx: ${nameRes.explorerLink}`,
-                        tweet.id,
+                        replyId,
                     );
                 }
             } catch (e) {
@@ -281,6 +306,8 @@ const processReplies = async () => {
 
     // move to pendingDeposit
     if (res?.data) {
+        // this is the id of the tweet we've replied with, store this for later in case we want to modify our flow and reply to our own tweet
+        tweet.onItReplyId = res.data.id;
         console.log('reply sent', tweet.id);
         // move to pendingDeposit
         tweet.depositAttempt = 0;
@@ -334,13 +361,13 @@ export default async function search(req, res) {
     }
     waitingForReset = 0;
 
-    // nope
+    // app key and app secret are used for app auth client
     const consumerClient = new TwitterApi({
         appKey: process.env.TWITTER_API_KEY,
         appSecret: process.env.TWITTER_API_SECRET,
     });
-    // app-only client
-    const client = await consumerClient.appLogin();
+    // client is global to this module, app-only client, used for search
+    client = await consumerClient.appLogin();
 
     // search
     const start_time =
