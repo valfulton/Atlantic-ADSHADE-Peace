@@ -29,9 +29,44 @@ However, when the stakes are a bit higher, such as providing a service, the risk
 
 ### API Auth
 
+## ENV VARS
+
+You will need to obtain the following env vars.
+
+```bash
+BASE_API_KEY: https://basescan.org/
+TWITTER_API_KEY: app auth key
+TWITTER_API_SECRET: app auth secret
+TWITTER_CLIENT_KEY: for client auth, also referred to as client ID
+TWITTER_CLIENT_SECRET: for client auth
+TWITTER_ACCESS_TOKEN: after authenticating your X agent account with your app
+TWITTER_REFRESH_TOKEN: same as above
+TWITTER_LAST_TIMESTAMP: default 0
+NEXT_PUBLIC_contractId: your shade agent contract ID
+MPC_PUBLIC_KEY_TESTNET: https://docs.near.org/chain-abstraction/chain-signatures/implementation
+MPC_PUBLIC_KEY_MAINNET: https://docs.near.org/chain-abstraction/chain-signatures/implementation
+RESTART_PASS: custom password in case you need to trigger your agent via http for any reason
+```
+
 Using Eliza OS Agent Twitter Client, you can also authenticate as a user with your API keys, if using the paid plan.
 
 This agent uses the official X API and a different library but the lessons are the same.
+
+## Authenticating Your Agent with the Client ID and Secret
+
+There's a utility NodeJS server in the file `/utils/auth.js` that you can run with node.
+
+Edit this file to add your own callback URL. It MUST be HTTPS!
+
+You will need to set up [ngrok](https://ngrok.com/) (or some alterative) to create your own callback URL.
+
+Once you're ready, before you launch the server, make sure you're signed in to the X account you want to get the AUTH and REFRESH tokens for.
+
+Start it up with node and navigate to `http://localhost:3000`
+
+Authorize your app and then go back to your node console/terminal and you should see the AUTH and REFRESH tokens.
+
+Copy these into your environment variables and you can now launch your agent.
 
 ## Best Practices Searching and Tweeting
 
