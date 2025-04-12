@@ -23,7 +23,7 @@ let refreshToken = process.env.TWITTER_REFRESH_TOKEN;
 
 // both false for production
 const FAKE_REPLY = false;
-const SEARCH_ONLY = false;
+const SEARCH_ONLY = true;
 
 // client must be initialized by first calling search http route
 let client = null;
@@ -426,7 +426,15 @@ export default async function search(req, res) {
 
         // tweet is reply, quote, or RT
         if (tweet.referenced_tweets?.length > 0) {
-            continue;
+            // make sure we haven't seen this basename request before and don't get confused or misled by users
+            if (
+                pendingReply.findIndex((t) => t.basename === tweet.basename) >
+                    -1 ||
+                pendingDeposit.findIndex((t) => t.basename === tweet.basename) >
+                    -1
+            ) {
+                continue;
+            }
         }
 
         //qualifies
@@ -438,6 +446,10 @@ export default async function search(req, res) {
             console.log(tweet);
         }
     }
+
+    res.status(200).json({ pendingReply: pendingReply.length });
+    return;
+
     // we won't see these valid tweets in the next API call
     if (latestValidTimestamp > 0) {
         lastTweetTimestamp = latestValidTimestamp;
