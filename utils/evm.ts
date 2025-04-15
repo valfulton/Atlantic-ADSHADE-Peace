@@ -56,7 +56,6 @@ export const evm = {
         networkId === 'testnet'
             ? 'https://sepolia.basescan.org'
             : 'https://basescan.org',
-    gasLimit: 21000,
 
     // custom methods for basednames registration
 
@@ -294,6 +293,8 @@ export const evm = {
         return await completeEthereumTx({ baseTx, path });
     },
 
+    // completes evm transaction calling NEAR smart contract get_signature method of shade agent
+    // only a registered shade agent should be able to call this to generate signatures for the OTA deposit accounts we replied to users with
     completeEthereumTx: async ({ baseTx, path }) => {
         const { chainId } = evm;
 
@@ -307,6 +308,7 @@ export const evm = {
         );
         const serializedTxHash = Buffer.from(hexPayload.substring(2), 'hex');
 
+        // get the signature from the NEAR contract
         const sigRes = await contractCall({
             accountId: undefined,
             methodName: 'get_signature',
@@ -316,6 +318,7 @@ export const evm = {
             },
         });
 
+        // parse the signature r, s, v into an ethers signature instance
         const signature = ethers.Signature.from({
             r:
                 '0x' +
@@ -330,12 +333,14 @@ export const evm = {
             'ethers.recoverAddress:',
             ethers.recoverAddress(serializedTxHash, signature),
         );
+        // add signature to base transaction
         tx.signature = signature;
         const serializedTx = tx.serialized;
 
         return await evm.broadcastTransaction(serializedTx);
     },
 
+    // broadcast transaction to evm chain, return object with explorerLink
     broadcastTransaction: async (serializedTx, second = false) => {
         console.log('BROADCAST serializedTx', serializedTx);
 
@@ -348,6 +353,7 @@ export const evm = {
 
             return {
                 success: true,
+                hash,
                 explorerLink: `${evm.explorer}/tx/${hash}`,
             };
         } catch (e) {
@@ -369,27 +375,6 @@ export const evm = {
             };
         }
     },
-};
-
-const encodeData = ({ method, args, ret }) => {
-    const abi = [
-        `function ${method}(${Object.keys(args).join(',')}) returns (${ret.join(
-            ',',
-        )})`,
-    ];
-    const iface = new ethers.Interface(abi);
-    const allArgs: any[] = [];
-    const argValues = Object.values(args);
-    for (let i = 0; i < argValues.length; i++) {
-        allArgs.push(argValues[i]);
-    }
-
-    console.log(abi[0], 'with args', allArgs);
-
-    return {
-        iface,
-        data: iface.encodeFunctionData(method, allArgs),
-    };
 };
 
 export default evm;

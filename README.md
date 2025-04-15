@@ -2,6 +2,8 @@
 
 This bot is based on the shade agent template (details below). It is a non-custodial worker agent running in a TEE with a fully verifiable codebase, that uses NEAR's chain signatures to purchase names for user's on Base (Coinbase chain).
 
+For help developing and deploying your shade agent Phala join the [Shade Agents Dev Group](https://t.me/shadeagents)!
+
 ## How it Works
 
 1. User posts "Hey @basednames buy [DESIRED_NAME].base.eth for me!"
@@ -11,11 +13,25 @@ This bot is based on the shade agent template (details below). It is a non-custo
 1. Bot refunds any extra ETH
 1. Bot replies "Done! ... tx explorer link"
 
-## X (Twitter) Libraries (for NodeJS)
+# X (Twitter) Libraries (for NodeJS)
+
+There are 2 main choices for X (Twitter) integration and there are pros and cons to both.
+
+1. Cookie Auth - create an account, sign in using the browser, copy some variables from the local storage / cookies and then place these in your env vars.
+
+Cookie Auth will let you get started right away. Your mileage might vary given that you might hit arbitrary rate limits, or be seen as a spam bot if the account is brand new and has few followers. But you should be able to search out of the box and work with some basic functionality.
+
+2. API Account - create a developer account, create an app, issue a client ID and client secret.
+
+An API Account will give you full permissions (within rate limits) to do what you want. This is the best choice for production apps.
+
+## Eliza OS Agent Twitter Client
 
 Many bots use [Eliza OS Agent Twitter Client](https://github.com/elizaOS/agent-twitter-client) for their bots.
 
-This repo uses [Twitter API V2](https://github.com/plhery/node-twitter-api-v2#readme) for the bot and a paid plan for the API Account.
+For more information on how to use this library for X via `shade-agent-js` lib, see [the Shade Agent JS repo](https://github.com/NearDeFi/shade-agent-js).
+
+It is possible to use Eliza client with a paid account, but we encountered issues. We have only had it working with Cookie Auth by providing the env vars copied from the browser local storage after a sign in.
 
 ### Cookie Auth, Development
 
@@ -23,11 +39,17 @@ Using Eliza OS Agent Twitter Client, you can authenticate with cookies from the 
 
 A Shade Agent using this library with an explanation how to set this up can be found [here](https://github.com/NearDeFi/shade-agent-twitter).
 
+Also see [the Shade Agent JS repo](https://github.com/NearDeFi/shade-agent-js).
+
 Cookie authentication is fine for very low traffic, low risk bots, for example giving away airdrops, marketing or simply doing something fun.
 
 However, when the stakes are a bit higher, such as providing a service, the risk of these bots getting rate limited is much higher than using the official API.
 
-### API Auth
+## Twitter API V2 + Paid Account
+
+This repo uses [Twitter API V2](https://github.com/plhery/node-twitter-api-v2#readme) for the bot and a paid plan for the API Account.
+
+The rest of this documentation about setting up env vars is related to an API Account Auth Flow.
 
 ## ENV VARS
 
@@ -48,10 +70,6 @@ MPC_PUBLIC_KEY_MAINNET: https://docs.near.org/chain-abstraction/chain-signatures
 RESTART_PASS: custom password in case you need to trigger your agent via http for any reason
 ```
 
-Using Eliza OS Agent Twitter Client, you can also authenticate as a user with your API keys, if using the paid plan.
-
-This agent uses the official X API and a different library but the lessons are the same.
-
 ## Authenticating Your Agent with the Client ID and Secret
 
 There's a utility NodeJS server in the file `/utils/auth.js` that you can run with node.
@@ -68,13 +86,13 @@ Authorize your app and then go back to your node console/terminal and you should
 
 Copy these into your environment variables and you can now launch your agent.
 
-## Best Practices Searching and Tweeting
+# Best Practices Searching and Tweeting
 
 Whether you're using the agent-twitter-client or twitter-api-v2 the same principles apply.
 
 It is important how your code will search, and tweet. Understanding your rate limits is essential to creating a good bot for X.
 
-### Recommendation: Store Last Seen Posts
+## Recommendation: Store Last Seen Posts
 
 When using APIs like X, you'll be doing a search of all relevent posts matching your criteria, but you'll also need to load each tweet (read request). It's not well documented that each tweet read also counts towards a rate limit.
 
@@ -91,7 +109,7 @@ const tweetGenerator = await client.v2.search('@basednames ".base.eth"', {
 
 In general, don't request anything you've already seen before.
 
-### Recommendation: Check Rate Limits
+## Recommendation: Check Rate Limits
 
 Checking the rate limit information returned to you from the API is prudent in a situation where you may be limited in the future.
 
@@ -103,7 +121,7 @@ One nice thing about the X API is that rate limits are dependent on the service.
 
 For example, search has nothing to do with posting tweets.
 
-### Recommendation: Use a Database as a Backup
+## Recommendation: Use a Database as a Backup
 
 While this worker agent does not, it would be prudent for a more serious production application to use a database.
 
@@ -113,7 +131,7 @@ Additionally, store operating variables like `lastSeenTweet` from the recommenda
 
 In this way, if you have to reboot the worker agent, you'll be able to pick up where you last left off.
 
-### Recommendation: Timeout vs. Intervals
+## Recommendation: Timeout vs. Intervals
 
 All [rate limits on X](https://docs.x.com/x-api/fundamentals/rate-limits) are measured in time increments, e.g. search for basic API plan is 60 searches in a 15 minute window.
 
@@ -134,7 +152,7 @@ We're calling `doSomething` every second, but `apiCall1` could take several mill
 
 But the interval is still going, every second, no matter what happens inside the function.
 
-#### Use Timeouts
+### Use Timeouts
 
 ```js
 async function doSomething() {
@@ -151,7 +169,7 @@ Rewritten, our code now waits for all api calls to complete before moving on to 
 
 Given the heavy rate limiting of X, using either cookie auth or official API accounts, this method is much more preferable to ensure that the calls to the API will no exceed a certain amount of "wall clock" time, in which API usage is measured.
 
-### Recommendation: Exception Handling
+## Recommendation: Exception Handling
 
 Exceptions will happen and uncaught exceptions can cause your bot to exit out of a function early and potentially disrupt other functions.
 
@@ -159,7 +177,13 @@ It's important that code calling APIs and using libraries be wrapped in a `try {
 
 If you take the recommended route of using timeouts, these timeouts must be called after all `await` and code in the block executes, in order to resume the next iteration without disruption.
 
-## Shade Agent Template
+# Shade Agent Library
+
+[Repo](https://github.com/NearDeFi/shade-agent-js/)
+
+# Shade Agent Template (README COPY)
+
+For help developing and deploying your shade agent Phala join the [Shade Agents Dev Group](https://t.me/shadeagents)!
 
 [Repo](https://github.com/NearDeFi/shade-agent-template/)
 

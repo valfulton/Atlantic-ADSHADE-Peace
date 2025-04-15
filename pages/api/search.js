@@ -103,11 +103,12 @@ const processRefunds = async () => {
     console.log('refund tweet.id', tweet.id);
 
     // whether successful or not, store this tweet in case we need to resolve manually
-    // need tweet.path to generate signature
+    // need tweet.path to force another manual refund attempt
     refunded.push(tweet);
 
     let internal = false;
     let tx = await getTransactionsForAddress(tweet.address);
+    // check transactions for smart contract wallets
     if (!tx) {
         tx = await getTransactionsForAddress(tweet.address, 'txlistinternal');
         internal = true;
@@ -124,6 +125,7 @@ const processRefunds = async () => {
                 BigInt(feeData.maxPriorityFeePerGas);
             const gasLimit = internal ? 500000n : 21000n;
             const gasFee = gasPrice * gasLimit;
+            // make sure we don't overshoot the total available
             const adjust = 5000000000000n;
             const amount = evm.formatBalance(balance - gasFee - adjust);
 
@@ -285,10 +287,10 @@ const processReplies = async () => {
         return;
     }
 
+    // prices (any extra is refunded)
     // 1100000000000000n 5+ char
     // 11000000000000000n 4 char
     // 110000000000000000n 3 char
-
     tweet.price = 1100000000000000n;
     if (tweet.basename.length === 4) {
         tweet.price = 11000000000000000n;
@@ -426,7 +428,7 @@ export default async function search(req, res) {
 
         // tweet is reply, quote, or RT
         if (tweet.referenced_tweets?.length > 0) {
-            // make sure we haven't seen this basename request before and don't get confused or misled by users
+            // make sure we haven't seen this basename request before and don't get confused or misled by user replies or QTs
             if (
                 pendingReply.findIndex((t) => t.basename === tweet.basename) >
                     -1 ||
@@ -446,9 +448,6 @@ export default async function search(req, res) {
             console.log(tweet);
         }
     }
-
-    res.status(200).json({ pendingReply: pendingReply.length });
-    return;
 
     // we won't see these valid tweets in the next API call
     if (latestValidTimestamp > 0) {
